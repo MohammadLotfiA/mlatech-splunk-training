@@ -1,0 +1,5 @@
+anonymous:anonymous
+root:rootpasswd
+ftp:ftp
+admin:admin
+user:password
