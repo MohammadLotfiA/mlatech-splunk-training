@@ -199,7 +199,7 @@
               <div className="w-3 h-3 rounded-full bg-green-500/90 shadow-inner"></div>
             </div>
             <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">
-              {language === "spl" ? "SPL" : "BASH"}
+              {language?.toLowerCase() === "spl" ? "SPL" : "BASH"}
             </span>
           </div>
 
@@ -458,10 +458,10 @@
           </div>
           
           <div className="space-y-8">
-            <div>
+            {downloadLabFiles && (<div>
               <h4 className="text-white font-bold mb-4 text-xl flex items-center"><i className="fas fa-download text-slate-400 mr-3"></i>Download Lab Files</h4>
               {downloadLabFiles}
-            </div>
+            </div>)}
 
             <div>
               <h4 className="text-white font-bold mb-4 text-xl flex items-center"><i className="fas fa-screwdriver-wrench text-slate-400 mr-3"></i>Step-by-step setup</h4>
@@ -1173,42 +1173,63 @@
               {activeTab === 6 && (
                 <div className="fade-in">
                   <SectionHeader title="The Simulation Wing" icon="fas fa-biohazard" />
-                  <p className="mb-10 text-xl text-slate-300 leading-relaxed font-light">This revised section is much more realistic. Each lab now explains the attacker goal, the analyst goal, what to look for in Splunk, and what assumptions must be true for the search to work. This is important because beginners often think Splunk is broken when the real problem is that the lab never generated the field they are trying to search.</p>
+                  <p className="mb-10 text-xl text-slate-300 leading-relaxed font-light">This section is much more realistic. Each lab now explains the attacker goal, the analyst goal, what to look for in Splunk, and what assumptions must be true for the search to work. This is important because beginners often think Splunk is broken when the real problem is that the lab never generated the field they are trying to search.</p>
 
                   <LabCard
-                    title="Lab 1: Hydra Brute Force Against SSH"
-                    icon="fas fa-hammer"
-                    color="border-t-red-500"
-                    scenario="An attacker on Kali tries multiple passwords rapidly against the target. Even if you originally wanted FTP, SSH logs are often easier for beginners to observe in syslog, parse with regex, and use in Splunk demonstrations."
-                    attackerGoal="Guess a valid password and gain a shell on the target."
-                    analystGoal="Detect repeated failures, identify the attacking IP, identify the targeted username, and check whether the brute force later succeeded."
-                    downloadLabFiles={<div><CodeBlock language="BASH" code={`curl https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Common-Credentials/top-20-common-SSH-passwords.txt -o wordlist.txt`} /></div>}
-                    setup={<ol className="list-decimal pl-6 space-y-2 text-base"><li>Make sure Metasploitable is sending syslog to Splunk.</li><li>Confirm you can SSH from Kali to the target IP.</li><li>Run a test search in Splunk: <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">index=lab_data sshd</code>.</li></ol>}
-                    attack={<div><CodeBlock language="BASH" code={`hydra -l msfadmin -P wordlist.txt ssh://[MSF2_IP]`} /></div>}
-                    recognize={<ul className="list-disc pl-6 space-y-2 text-base"><li>Repeated “Failed password” messages close together in time.</li><li>The same source IP appearing many times.</li><li>The same target username being attempted repeatedly.</li><li>If the attack works, an “Accepted password” message may appear later.</li></ul>}
-                    commands={<>
-                      <CodeBlock code={`index=lab_data sshd\n| search "Failed password"`} />
-                      <CodeBlock code={`index=lab_data sshd "Failed password"\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "for (invalid user )?(?<attempted_user>\\S+) from"\n| stats count by attacker_ip attempted_user\n| sort - count`} />
-                      <CodeBlock code={`index=lab_data sshd ("Failed password" OR "Accepted password")\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| table _time attacker_ip _raw`} />
-                    </>}
-                    warning="Do not assume a ready-made field such as src_ip already exists in syslog. In many beginner labs it does not. That is why this revised version uses rex first."
+                    title="Lab 1: FTP Login Attempts"
+                    color="border-t-orange-500"
+                    scenario="You will then leverage Kali to perform a dictionary attack on the Metasploitable 2 FTP server. FTP on Metasploitable can be noisy enough to learn authentication monitoring in Splunk."
+                    attackerGoal="Guess a valid FTP password and access the service."
+                    analystGoal="Find failed attempts, identify the attacker IP if present in the logs, and identify which username was being tested."
+                    downloadLabFiles={<div><CodeBlock language="BASH" code={`curl https://raw.githubusercontent.com/MohammadLotfiA/mlatech-splunk-training/refs/heads/main/wordlists/common-ftp-user-pass.txt`} /></div>}
+                    setup={<ol className="list-decimal pl-6 space-y-2 text-base"><li>Verify the FTP service is reachable from Kali.</li><li>Run a broad Splunk search first to check whether FTP-related logs are actually arriving: <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">index=lab_data ftp OR vsftpd</code>.</li><li>If no FTP logs appear, document that this lab needs service-specific logs or an alternate telemetry source.</li></ol>}
+                    attack={<div><CodeBlock language="BASH" code={`hydra -C common-ftp-user-pass.txt ftp://[MSF2_IP]\n\n#Or you can try with:\nhydra -C common-ftp-user-pass.txt [MSF2_IP] ftp\n\n#Make sure to replace the IP address [MSF2_IP] with the Metasploitable2 IP, for instance 192.168.56.101`} /></div>}
+                    recognize={<ul className="list-disc pl-6 space-y-2 text-base">
+                      <li>Repeated authentication failures.</li>
+                      <li>Rapid repeated login attempts from the same IP.</li>
+                      <li>Usernames repeated in a tight time window.</li>
+                      <li><strong>FTP Failed (vsftpd): </strong><code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">pam_unix(vsftpd:auth): authentication failure</code></li>
+                      <li><strong>FTP Success: </strong><code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">pam_unix(vsftpd:session): session opened for user msfadmin</code></li>
+                      </ul>}
+                    commands={
+                      <CodeBlock code={`index=lab_data sourcetype=syslog vsftpd "authentication failure"`} />}
+                    warning="This lab is only correct if your forwarded logs actually contain FTP activity. That is why the first search is a broad validation query instead of a premature final detection query."
                   />
 
                   <LabCard
-                    title="Lab 2: FTP Login Attempts"
-                    color="border-t-orange-500"
-                    scenario="You want a BOTSv3-style credential attack exercise, but adapted to a small live lab. FTP on Metasploitable can be noisy enough to teach authentication monitoring if the service logs are visible to Splunk."
-                    attackerGoal="Guess a valid FTP password and access the service."
-                    analystGoal="Find failed attempts, identify the attacker IP if present in the logs, and identify which username was being tested."
-                    setup={<ol className="list-decimal pl-6 space-y-2 text-base"><li>Verify the FTP service is reachable from Kali.</li><li>Run a broad Splunk search first to check whether FTP-related logs are actually arriving: <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">index=lab_data ftp OR vsftpd</code>.</li><li>If no FTP logs appear, document that this lab needs service-specific logs or an alternate telemetry source.</li></ol>}
-                    attack={<div><CodeBlock language="BASH" code={`hydra -l msfadmin -P ftp_list.txt ftp://[MSF2_IP]`} /></div>}
-                    recognize={<ul className="list-disc pl-6 space-y-2 text-base"><li>Repeated authentication failures.</li><li>Rapid repeated login attempts from the same IP.</li><li>Usernames repeated in a tight time window.</li></ul>}
-                    commands={<>
-                      <CodeBlock code={`index=lab_data (ftp OR vsftpd)\n| table _time host source sourcetype _raw`} />
-                      <CodeBlock code={`index=lab_data (ftp OR vsftpd)\n| search (fail OR failed OR incorrect OR login)\n| table _time _raw`} />
-                      <CodeBlock code={`index=lab_data (ftp OR vsftpd)\n| rex "(?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| stats count by attacker_ip\n| sort - count`} />
-                    </>}
-                    warning="This lab is only correct if your forwarded logs actually contain FTP activity. That is why the first search is a broad validation query instead of a premature final detection query."
+                    title="Lab 2: Hydra Brute Force Against SSH"
+                    icon="fas fa-hammer"
+                    color="border-t-red-500"
+                    scenario="In this lab, we will use Hydra on Kali Linux to launch a brute-force attack against the Metasploitable 2 SSH service. You can see how the SSH logs looklike in Splunk"
+                    attackerGoal="Guess a valid password and gain a shell on the target."
+                    analystGoal="Detect repeated failures, identify the attacking IP, identify the targeted username, and check whether the brute force later succeeded."
+                    downloadLabFiles={<div><CodeBlock language="BASH" code={`curl https://raw.githubusercontent.com/MohammadLotfiA/mlatech-splunk-training/refs/heads/main/wordlists/common-ssh-passwords.txt`} /></div>}
+                    setup={<ol className="list-decimal pl-6 space-y-4 text-base">
+                        <li>
+                          Run this one-liner to create the global SSH configuration file with the necessary legacy support for Metasploitable2 and <strong>make sure to replace the IP address (192.168.56.101)</strong> with the IP of the Metasploitable2 VM:
+                          <div className="mt-2">
+                            <CodeBlock language="BASH" code={`mkdir -p ~/.ssh && printf "Host 192.168.56.101\\n    HostKeyAlgorithms +ssh-rsa\\n    PubkeyAcceptedAlgorithms +ssh-rsa\\n    KexAlgorithms +diffie-hellman-group1-sha1\\n    MACs +hmac-sha1,hmac-md5\\n" > ~/.ssh/config && chmod 600 ~/.ssh/config`} />
+                          </div>
+                        </li>
+                        <li>
+                          Confirm that the handshake works by attempting a manual SSH connection (you can cancel with Ctrl+C once it asks for a password):
+                          <div className="mt-2">
+                            <CodeBlock language="BASH" code={`ssh msfadmin@192.168.56.101`} />
+                          </div>
+                        </li>
+                      </ol>}
+                    attack={<div><CodeBlock language="BASH" code={`hydra -l admin -P common-ssh-passwords.txt ssh://[MSF2_IP]\n\n#Or you can try with:\nhydra -l admin -P common-ssh-passwords.txt [MSF2_IP] ssh\n\n#Make sure to replace the IP address [MSF2_IP] with the Metasploitable2 IP, for instance 192.168.56.101`} /></div>}
+                    recognize={<ul className="list-disc pl-6 space-y-2 text-base">
+                      <li>Repeated “Failed password” messages close together in time.</li>
+                      <li>The same source IP appearing many times.</li>
+                      <li>The same target username being attempted repeatedly.</li>
+                      <li>If the attack works, an “Accepted password” message may appear later.</li>
+                      <li><strong>SSH Failed*: </strong><code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">Failed password for invalid user admin from 192.168.56.1 port 54321 ssh2</code></li>
+                      <li><strong>SSH Success*: </strong><code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">Accepted password for msfadmin from 192.168.56.1 port 54321 ssh2</code></li>
+                      <em>*Take a note that you might see a different IP address and port!</em>
+                      </ul>}
+                    commands={<CodeBlock code={`index=lab_data sourcetype=syslog sshd "Failed password"`} />}
+                    warning="Do not assume a ready-made field such as src_ip already exists in syslog. In many beginner labs it does not."
                   />
 
                   <LabCard
@@ -1228,13 +1249,29 @@
                   />
 
                   <LabCard
-                    title="Lab 4: Nikto Web Scan"
+                    title="Lab 4: Manual SSH Root Attempt"
+                    color="border-t-green-500"
+                    scenario="The attacker manually targets a privileged account instead of spraying many usernames."
+                    attackerGoal="Log into the root account directly."
+                    analystGoal="Detect privileged-account targeting and explain why even a small number of root login attempts matters."
+                    setup={<ol className="list-decimal pl-6 space-y-2 text-base"><li>Make sure SSH logs are visible in Splunk.</li><li>Know the target IP.</li><li>Be ready to search for root-specific failures.</li></ol>}
+                    attack={<div><CodeBlock language="BASH" code="ssh root@[MSF2_IP]" /></div>}
+                    recognize={<ul className="list-disc pl-6 space-y-2 text-base"><li>Failed password attempts mentioning root.</li><li>Potential invalid user or denied root login messages.</li><li>Short but high-value activity because of the account being targeted.</li></ul>}
+                    commands={
+                      <CodeBlock code={`index=lab_data sshd ("root" AND "Failed password")`} />}
+                    warning="This is one of the strongest beginner labs because SSH auth logs are commonly visible in syslog and do not require assuming fancy fields already exist."
+                  />
+
+                  <SubHeader title="Bonus Lab (Needs extra setup)" />
+
+                  <LabCard
+                    title="Lab 5: Nikto Web Scan"
                     color="border-t-purple-500"
                     scenario="Nikto hits many web paths and is intentionally noisy. It is a good beginner example of web reconnaissance, but only if your environment is logging HTTP requests."
                     attackerGoal="Find weak web paths, old files, dangerous directories, and vulnerable web components."
                     analystGoal="Recognize repetitive web requests, repeated 404-style behavior, or user-agent clues that suggest Nikto."
                     setup={<ol className="list-decimal pl-6 space-y-2 text-base"><li>Make sure the target actually has a web service running.</li><li>Confirm web logs are being collected. Search for <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">apache</code>, <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">access</code>, or other web log indicators in Splunk.</li><li>If you only forward generic syslog and do not collect access logs, this lab may produce little or no searchable evidence.</li></ol>}
-                    attack={<div><CodeBlock language="BASH" code="nikto -h http://[MSF2_IP]" /></div>}
+                    attack={<div><CodeBlock language="BASH" code="nikto -h http://[MSF2_IP] -Tuning 2" /></div>}
                     recognize={<ul className="list-disc pl-6 space-y-2 text-base"><li>Many requests in a short time.</li><li>Requests to unusual or obviously probing paths.</li><li>Potential Nikto user-agent evidence if logged.</li></ul>}
                     commands={<>
                       <CodeBlock code={`index=lab_data (apache OR access OR http OR nikto)\n| table _time _raw`} />
@@ -1243,111 +1280,88 @@
                     warning="The original query used uri_path directly, but that field may not exist unless the web logs are parsed properly. Beginners should verify raw web data exists first."
                   />
 
-                  <LabCard
-                    title="Lab 5: Manual SSH Root Attempt"
-                    color="border-t-green-500"
-                    scenario="The attacker manually targets a privileged account instead of spraying many usernames."
-                    attackerGoal="Log into the root account directly."
-                    analystGoal="Detect privileged-account targeting and explain why even a small number of root login attempts matters."
-                    setup={<ol className="list-decimal pl-6 space-y-2 text-base"><li>Make sure SSH logs are visible in Splunk.</li><li>Know the target IP.</li><li>Be ready to search for root-specific failures.</li></ol>}
-                    attack={<div><CodeBlock language="BASH" code="ssh root@[MSF2_IP]" /></div>}
-                    recognize={<ul className="list-disc pl-6 space-y-2 text-base"><li>Failed password attempts mentioning root.</li><li>Potential invalid user or denied root login messages.</li><li>Short but high-value activity because of the account being targeted.</li></ul>}
-                    commands={<>
-                      <CodeBlock code={`index=lab_data sshd ("root" AND "Failed password")`} />
-                      <CodeBlock code={`index=lab_data sshd ("root" AND "Failed password")\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| stats count by attacker_ip`} />
-                    </>}
-                    warning="This is one of the strongest beginner labs because SSH auth logs are commonly visible in syslog and do not require assuming fancy fields already exist."
-                  />
+
                 </div>
               )}
 
               {/* --- TAB 7: FIELD EXTRACTIONS --- */}
               {activeTab === 7 && (
-                <div className="fade-in">
-                  <SectionHeader title="Field Extractions" icon="fas fa-cut" />
-                  <p className="mb-6 text-xl text-slate-300 leading-relaxed font-light">This section is now tied directly to the labs. Instead of teaching regex in the abstract, we use it to solve real lab problems: extract the attacker IP, the attempted username, and the port from raw SSH or FTP-style logs.</p>
+                <div className="fade-in space-y-12">
+                  <div className="mb-6">
+                    <SectionHeader title="Phase 1: Field Extraction" icon="fas fa-microscope" />
+                    <p className="text-xl text-slate-300 leading-relaxed font-light">
+                      Raw logs are unorganized. To build alerts, we must extract specific data points like <span className="text-blue-400 font-semibold">src_ip</span> and <span className="text-blue-400 font-semibold">user_attempted</span>. This "Data Engineering" phase ensures Splunk understands exactly what happened during your attack.
+                    </p>
+                  </div>
 
-                  <SubHeader title="Why field extraction matters" />
-                  <p className="mb-8 leading-relaxed text-lg text-slate-300">If Splunk only sees a long sentence, you cannot easily count by attacker IP or by username. Field extraction turns a sentence into searchable pieces. Once a value becomes a field, you can count it, chart it, filter it, alert on it, and put it on a dashboard.</p>
-
-                  <SubHeader title="Lab-tied example: extract attacker IP and username from SSH failures" />
-                  <div className="glass-panel p-8 rounded-3xl border border-slate-700 shadow-xl mb-10 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                    <p className="mb-4 text-slate-300 leading-relaxed text-lg relative z-10">Suppose your raw event looks similar to this:</p>
-                    <div className="relative z-10 mb-6">
-                      <CodeBlock code="Failed password for invalid user admin from 192.168.56.102 port 51221 ssh2" />
+                  {/* Section 1: SSH Parsing */}
+                  <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
+                    <div className="flex items-center mb-6">
+                      <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mr-4">
+                        <i className="fas fa-terminal text-blue-400 text-xl"></i>
+                      </div>
+                      <SubHeader title="1. SSH Failure Extraction" />
                     </div>
-                    <p className="mb-4 text-slate-300 leading-relaxed text-lg relative z-10">Now use <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">rex</code> to pull out the pieces you care about.</p>
-                    <div className="relative z-10">
-                      <CodeBlock code={`index=lab_data sshd "Failed password"\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "for (invalid user )?(?<attempted_user>\\S+) from"\n| rex "port (?<port_num>\\d+)"\n| table _time attacker_ip attempted_user port_num _raw`} />
-                    </div>
-                    <p className="text-base text-slate-400 leading-relaxed mt-5 relative z-10 bg-slate-900/50 p-4 rounded-xl border border-slate-800">This is much better than assuming <code>src_ip</code> or <code>user</code> already exists. It works directly against the raw text if the pattern matches.</p>
-                  </div>
-
-                  <SubHeader title="Use the UI extractor if regex feels scary" />
-                  <div className="bg-slate-800/60 p-8 rounded-3xl border border-slate-700 mb-10 text-slate-300 shadow-inner">
-                    <ol className="list-decimal pl-6 space-y-5 text-lg font-medium">
-                      <li>Run a search such as <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">index=lab_data sshd "Failed password"</code>.</li>
-                      <li>Open one event.</li>
-                      <li>Use <strong>Event Actions &gt; Extract Fields</strong>.</li>
-                      <li>Choose the <strong>Regular Expression</strong> option.</li>
-                      <li>Highlight the value you want to extract, such as the IP address.</li>
-                      <li>Name the field something clear, such as <code className="font-code text-green-300 bg-green-900/30 px-1 rounded">attacker_ip</code>.</li>
-                      <li>Save it and test with a follow-up search.</li>
-                    </ol>
-                  </div>
-
-                  <SubHeader title="Practical regex cheat sheet tied to the lab" />
-                  <div className="overflow-x-auto mb-10 rounded-2xl border border-slate-700 shadow-xl">
-                    <table className="min-w-full text-left text-base text-slate-300">
-                      <thead className="bg-slate-900 text-blue-400 border-b border-slate-700 font-bold uppercase tracking-wider text-sm">
-                        <tr>
-                          <th className="p-5">What you want</th>
-                          <th className="p-5">Regex</th>
-                          <th className="p-5">Why it works</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800 bg-slate-900/40">
-                        <tr className="hover:bg-slate-800/50 transition-colors">
-                          <td className="p-5 font-semibold text-white">Attacker IP</td>
-                          <td className="p-5 font-code text-green-400 bg-black/20">from (?&lt;attacker_ip&gt;\d+\.\d+\.\d+\.\d+)</td>
-                          <td className="p-5">Looks for the word <code>from</code> and captures the IP after it.</td>
-                        </tr>
-                        <tr className="hover:bg-slate-800/50 transition-colors">
-                          <td className="p-5 font-semibold text-white">Attempted username</td>
-                          <td className="p-5 font-code text-green-400 bg-black/20">for (invalid user )?(?&lt;attempted_user&gt;\S+) from</td>
-                          <td className="p-5">Handles both normal and “invalid user” login failure wording in SSH logs.</td>
-                        </tr>
-                        <tr className="hover:bg-slate-800/50 transition-colors">
-                          <td className="p-5 font-semibold text-white">Port number</td>
-                          <td className="p-5 font-code text-green-400 bg-black/20">port (?&lt;port_num&gt;\d+)</td>
-                          <td className="p-5">Captures the digits after the word <code>port</code>.</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <SubHeader title="Turn the extraction into a real hands-on task" />
-                  <div className="glass-panel p-8 rounded-3xl border border-slate-700 space-y-6">
-                    <p className="text-slate-300 text-lg leading-relaxed"><strong className="text-white">Mini mission:</strong> Run your Hydra or manual SSH attack, extract <code className="font-code text-green-300">attacker_ip</code> and <code className="font-code text-green-300">attempted_user</code>, then answer these three questions:</p>
-                    <ol className="list-decimal pl-6 space-y-3 text-slate-200 text-lg font-medium">
-                      <li>Which IP attacked the server?</li>
-                      <li>Which username was targeted?</li>
-                      <li>How many failed attempts came from that IP?</li>
-                    </ol>
-                    <div className="pt-4">
-                      <CodeBlock code={`index=lab_data sshd "Failed password"\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "for (invalid user )?(?<attempted_user>\\S+) from"\n| stats count by attacker_ip attempted_user\n| sort - count`} />
+                    <p className="text-slate-300 mb-6 text-lg">Use the <code>rex</code> command to capture the IP and Username from the Metasploitable SSH syslog format.</p>
+                    <CodeBlock language="SPL" code={`index=lab_data sshd "Failed password"\n| rex "from (?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "for (?<user_attempted>\\S+) from"\n| table _time, src_ip, user_attempted`} />
+                    
+                    <div className="mt-8">
+                      <Accordion title="SSH Parsing Troubleshooting" icon="fas fa-info-circle">
+                        <ul className="list-disc pl-6 space-y-3 text-slate-300">
+                          <li><strong>Regex Failure:</strong> If the fields appear empty, check if your log says "Failed password for <strong>invalid user</strong> admin". The regex <code>\\S+</code> handles both, but ensure there are no extra spaces.</li>
+                          <li><strong>Field Names:</strong> Splunk is case-sensitive. If you name it <code>Src_IP</code> here, you must use <code>Src_IP</code> in every alert search.</li>
+                        </ul>
+                      </Accordion>
                     </div>
                   </div>
 
-                  <div className="mt-8">
-                    <Accordion title="Common beginner mistakes in field extraction" icon="fas fa-circle-question" defaultOpen={false}>
-                      <ul className="list-disc pl-6 space-y-4 text-lg leading-relaxed text-slate-300">
-                        <li>You saved the extraction as private, so another user or dashboard cannot see it.</li>
-                        <li>You made the extraction on one sourcetype but are searching a different sourcetype later.</li>
-                        <li>Your regex does not match the real log format because the raw event wording is slightly different.</li>
-                        <li>You assumed fields already existed and never inspected the raw event first.</li>
-                      </ul>
+                  {/* Section 2: FTP Parsing */}
+                  <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
+                    <div className="flex items-center mb-6">
+                      <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mr-4">
+                        <i className="fas fa-file-import text-purple-400 text-xl"></i>
+                      </div>
+                      <SubHeader title="2. FTP Failure Extraction" />
+                    </div>
+                    <p className="text-slate-300 mb-6 text-lg">FTP logs use <code>ruser</code> and <code>rhost</code>. We apply a similar logic to map these to our standardized field names.</p>
+                    <CodeBlock language="SPL" code={`index=lab_data vsftpd "authentication failure"\n| rex "ruser=(?<user_attempted>\\S+)"\n| rex "rhost=(?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| table _time, src_ip, user_attempted`} />
+                    
+                    <div className="mt-8">
+                      <Accordion title="FTP Parsing Troubleshooting" icon="fas fa-info-circle">
+                        <ul className="list-disc pl-6 space-y-3 text-slate-300">
+                          <li><strong>Missing Logs:</strong> If you don't see FTP logs, verify Metasploitable is sending <code>vsftpd</code> logs to syslog. Check <code>/etc/vsftpd.conf</code> on the target.</li>
+                          <li><strong>Standardization:</strong> Notice we use <code>src_ip</code> for both. This allows us to build a single dashboard that tracks attackers across ALL services.</li>
+                        </ul>
+                      </Accordion>
+                    </div>
+                  </div>
+
+                  {/* Section 3: UI-Based Permanent Saving */}
+                  <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
+                    <div className="flex items-center mb-6">
+                      <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center mr-4">
+                        <i className="fas fa-save text-green-400 text-xl"></i>
+                      </div>
+                      <SubHeader title="3. Making Fields Permanent" />
+                    </div>
+                    <p className="text-slate-300 mb-6 text-lg">Typing <code>rex</code> every time is inefficient. Follow these steps to save the fields in the Splunk UI.</p>
+                    <div className="space-y-4 mb-8">
+                      <ol className="text-base text-slate-300 space-y-2 list-decimal pl-5">
+                        <li>Run: <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">index=lab_data (sshd OR vsftpd)</code></li>
+                        <li>Expand any "Failed" event &gt; <strong>Event Actions &gt; Extract Fields</strong>.</li>
+                        <li>Select <strong>Regular Expression</strong> and highlight the IP.</li>
+                        <li>Name it <code className="text-green-400">src_ip</code> and click Save.</li>
+                        <li>Repeat for the username and name it <code className="text-green-400">user_attempted</code>.</li>
+                      </ol>
+                    </div>
+
+                    <Accordion title="Extraction Cleanup & Optimization" icon="fas fa-broom">
+                      <p className="text-slate-300 mb-4">Messed up? To delete or edit saved fields:</p>
+                      <ol className="list-decimal pl-6 space-y-2 text-sm text-slate-300">
+                        <li>Navigate to <strong>Settings &gt; Fields &gt; Field extractions</strong>.</li>
+                        <li>Filter by your index name or field name (e.g., <code>src_ip</code>).</li>
+                        <li>Click <strong>Delete</strong> to reset the logic and try again.</li>
+                      </ol>
                     </Accordion>
                   </div>
                 </div>
@@ -1355,103 +1369,186 @@
 
               {/* --- TAB 8: ADVANCED ALERTS --- */}
               {activeTab === 8 && (
-                <div className="fade-in">
-                  <SectionHeader title="Advanced Alerts" icon="fas fa-bell" />
-                  <p className="mb-8 text-xl text-slate-300 leading-relaxed font-light">Alerts should reduce analyst workload, not create noise. This revised version keeps the beginner-friendly logic but also explains where the original draft was too optimistic or too expensive.</p>
+                  <div className="fade-in space-y-12">
+                    <div className="mb-6">
+                      <SectionHeader title="Phase 2: Alerting & Testing" icon="fas fa-bell" />
+                      <p className="text-xl text-slate-300 leading-relaxed font-light">
+                        Detections are automated guardians. In this lab, you will build three different alerts and perform the attacks from Kali to verify that your "SOC" can catch the threat in real-time.
+                      </p>
+                    </div>
 
-                  <SubHeader title="Alert 1: repeated SSH failures from one IP" />
-                  <p className="mb-4 text-slate-300 text-lg leading-relaxed">This is a clean beginner alert because it works directly on common SSH syslog wording.</p>
-                  <CodeBlock code={`index=lab_data sshd "Failed password"\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| stats count by attacker_ip\n| where count > 5`} />
+                    {/* Alert 1: Brute Force */}
+                    <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-white font-bold text-2xl italic flex items-center">
+                          <i className="fas fa-bolt text-yellow-400 mr-3"></i> 1. High-Volume Brute Force
+                        </h4>
+                        <span className="text-[10px] text-yellow-500 font-bold border border-yellow-500/30 px-2 py-1 rounded-md uppercase">Severity: Med</span>
+                      </div>
+                      <CodeBlock language="SPL" code={`index=lab_data (sshd "Failed" OR vsftpd "failure")\n| stats count by src_ip, user_attempted\n| where count > 10`} />
+                      <p className="text-slate-400 text-sm mt-4 mb-6 italic">Save as Alert &gt; Real-Time &gt; Throttle by src_ip (1 min).</p>
+                      
+                      <Accordion title="How to Test & Verify" icon="fas fa-flask">
+                        <p className="text-slate-300 mb-4 font-bold">Attack Command (Kali):</p>
+                        <CodeBlock code={`hydra -l msfadmin -P common-ssh-passwords.txt 192.168.56.101 ssh -t 4`} />
+                        <p className="text-slate-400 text-sm mt-4">Check <strong>Activity &gt; Triggered Alerts</strong>. If it fired, you successfully detected a brute force attempt.</p>
+                      </Accordion>
+                    </div>
 
-                  <div className="glass-panel p-8 rounded-3xl border-l-4 border-yellow-500 mb-10 mt-8 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                    <h4 className="font-extrabold text-yellow-400 mb-6 text-2xl relative z-10 flex items-center">
-                      <i className="fas fa-floppy-disk mr-3"></i>How to save it as an alert
-                    </h4>
-                    <ol className="list-decimal pl-6 space-y-4 font-medium text-slate-300 text-lg leading-relaxed relative z-10">
-                      <li>Click <strong>Save As &gt; Alert</strong>.</li>
-                      <li>Name it something clear such as <code className="font-code text-white bg-slate-800 px-1 rounded">SSH Brute Force Detected</code>.</li>
-                      <li>Schedule it every 5 minutes.</li>
-                      <li>Trigger it when the number of results is greater than 0.</li>
-                      <li>Throttle on <code className="font-code text-white bg-slate-800 px-1 rounded">attacker_ip</code> for 60 minutes so one noisy attacker does not spam you endlessly.</li>
-                    </ol>
+                    {/* Alert 2: Success After Failure */}
+                    <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-white font-bold text-2xl italic flex items-center">
+                          <i className="fas fa-door-open text-red-400 mr-3"></i> 2. The Breach Detection
+                        </h4>
+                        <span className="text-[10px] text-red-500 font-bold border border-red-500/30 px-2 py-1 rounded-md uppercase">Severity: Critical</span>
+                      </div>
+                      <CodeBlock language="SPL" code={`index=lab_data (sshd OR vsftpd) ("Failed" OR "Accepted" OR "OK LOGIN")\n| transaction src_ip maxspan=5m\n| search ("Failed" OR "failure") AND ("Accepted" OR "OK LOGIN")`} />
+                      <p className="text-slate-400 text-sm mt-4 mb-6 italic">This alert triggers only when an attacker finally guesses the right password.</p>
+                      
+                      <Accordion title="The 'Scenario' Test" icon="fas fa-flask">
+                        <ol className="list-decimal pl-6 space-y-3 text-sm text-slate-300">
+                          <li>Run Hydra with a small, incorrect password list to generate failures.</li>
+                          <li>Immediately after, log in manually with the correct credentials: <code className="text-blue-300">ssh msfadmin@192.168.56.101</code>.</li>
+                          <li>Wait for the <strong>transaction</strong> to group them and fire the Critical alert.</li>
+                        </ol>
+                      </Accordion>
+                    </div>
+
+                    {/* Alert 3: Root Account Targeting */}
+                    <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-white font-bold text-2xl italic flex items-center">
+                          <i className="fas fa-user-shield text-blue-400 mr-3"></i> 3. Root Targeting Detection
+                        </h4>
+                        <span className="text-[10px] text-blue-500 font-bold border border-blue-500/30 px-2 py-1 rounded-md uppercase">Severity: High</span>
+                      </div>
+                      <CodeBlock language="SPL" code={`index=lab_data (sshd OR vsftpd) user_attempted="root"\n| stats count by src_ip, sourcetype\n| where count >= 1`} />
+                      <p className="text-slate-400 text-sm mt-4 mb-6 italic">In secure environments, root should never be targeted. We alert on a single attempt.</p>
+                      
+                      <Accordion title="The Single-Hit Test" icon="fas fa-flask">
+                        <p className="text-slate-300 mb-4 font-bold">Attack Command (Kali):</p>
+                        <CodeBlock code={`hydra -l root -p simplepassword 192.168.56.101 ftp`} />
+                        <p className="text-slate-400 text-sm mt-4">Even one failure from Hydra will trigger this alert because the user is "root".</p>
+                      </Accordion>
+                    </div>
+
+                    {/* Cleanup Footer */}
+                    <div className="pt-8 border-t border-slate-800">
+                      <Accordion title="Lab Cleanup: Removing Background Noise" icon="fas fa-trash-alt">
+                        <p className="text-slate-300 text-sm mb-4">When you are finished with this lab, you must disable or delete your alerts to keep your Splunk Enterprise instance performant:</p>
+                        <ol className="list-decimal pl-6 space-y-2 text-xs text-slate-400 italic">
+                          <li>Go to <strong>Settings &gt; Searches, Reports, and Alerts</strong>.</li>
+                          <li>Find the alerts you created and select <strong>Edit &gt; Delete</strong>.</li>
+                        </ol>
+                      </Accordion>
+                    </div>
                   </div>
-
-                  <SubHeader title="Alert 2: failures followed by success" />
-                  <p className="mb-4 text-slate-300 text-lg leading-relaxed">The original draft used <code className="font-code text-blue-300">transaction</code>, which is easy to understand but can be heavy at scale. We will keep it as a beginner learning example, but we will label it honestly.</p>
-                  <CodeBlock code={`index=lab_data sshd ("Failed password" OR "Accepted password")\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| transaction attacker_ip maxspan=5m\n| search "Failed password" AND "Accepted password"`} />
-                  
-                  <InfoCard icon="fas fa-gauge-high" title="Production note" tone="yellow">
-                    The <code>transaction</code> command is fine for small labs and teaching. In larger environments it can be expensive. A more scalable method often uses stats, eventstats, streamstats, or correlation logic instead.
-                  </InfoCard>
-
-                  <SubHeader title="Alert 3: root account targeting" />
-                  <CodeBlock code={`index=lab_data sshd ("root" AND "Failed password")\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| stats count by attacker_ip\n| where count >= 1`} />
-                  <p className="text-lg text-slate-300 leading-relaxed mt-4 bg-slate-900/50 p-5 rounded-2xl border border-slate-800">This is a strong low-volume alert. Even one direct root login attempt can matter in a small Linux lab.</p>
-
-                  <div className="mt-10">
-                    <Accordion title="Common alert mistakes" icon="fas fa-bug" defaultOpen={false}>
-                      <ul className="list-disc pl-6 space-y-4 text-lg leading-relaxed text-slate-300">
-                        <li>You built the alert on a field such as <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">src_ip</code> that never existed in your data.</li>
-                        <li>You forgot to limit the alert logic to the relevant sourcetype or keyword.</li>
-                        <li>You set the threshold too low and created alert fatigue.</li>
-                        <li>You never throttled the alert, so one attack floods your inbox.</li>
-                      </ul>
-                    </Accordion>
-                  </div>
-                </div>
-              )}
+                )}
 
               {/* --- TAB 9: DASHBOARDS --- */}
               {activeTab === 9 && (
                 <div className="fade-in">
                   <SectionHeader title="Dashboards & Visualizations" icon="fas fa-chart-pie" />
-                  <p className="mb-8 text-xl text-slate-300 leading-relaxed font-light">This section is now more realistic. Each panel tells you what assumption must be true before it will work. That makes the dashboard section much safer for beginners.</p>
+                  <p className="mb-8 text-xl text-slate-300 leading-relaxed font-light">
+                    This section transforms raw technical data into a visual story. Each panel below helps you track the 2026 Kali attack in real-time. Use <strong>Option A</strong> if you saved your fields in Tab 7, or <strong>Option B</strong> to extract them on the fly.
+                  </p>
 
                   <SubHeader title="Dashboard design rule for beginners" />
                   <InfoCard icon="fas fa-table-columns" title="Build from working searches only" tone="green">
-                    Never build a dashboard first and hope it works later. First make a search work in Search & Reporting. Then turn that working search into a panel.
+                    Never build a dashboard first and hope it works later. First make a search work in <strong>Search & Reporting</strong>. Once you see the statistics you want in the table below the search bar, only then turn that working search into a panel.
                   </InfoCard>
 
                   <div className="space-y-8 mb-12 mt-8">
+                    {/* Panel 1: Attack Trend */}
                     <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-700 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
-                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center"><i className="fas fa-chart-line text-blue-400 mr-3 text-2xl"></i>Panel 1: SSH failure trend by attacker IP</h4>
-                      <div className="relative z-10"><CodeBlock code={`index=lab_data sshd "Failed password"\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| timechart count by attacker_ip`} /></div>
-                      <p className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl">Use this if your lab has SSH brute force data. This is one of the safest and most reliable beginner panels.</p>
+                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center">
+                        <i className="fas fa-chart-line text-blue-400 mr-3 text-2xl"></i>Panel 1: Global Attack Trend (Over Time)
+                      </h4>
+                      <div className="relative z-10 space-y-4">
+                        <div>
+                          <p className="text-xs text-green-400 font-bold uppercase mb-1">Option A (Permanent Fields):</p>
+                          <CodeBlock code={`index=lab_data (sshd "Failed" OR vsftpd "failure")\n| timechart count by sourcetype`} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-yellow-400 font-bold uppercase mb-1">Option B (Inline Extraction):</p>
+                          <CodeBlock code={`index=lab_data (sshd "Failed" OR vsftpd "failure")\n| rex "from (?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "rhost=(?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| timechart count by sourcetype`} />
+                        </div>
+                      </div>
+                      <div className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl space-y-2">
+                        <p><strong>What to expect:</strong> This panel generates a line or area chart. As you run Hydra, you will see a sudden "spike" in the graph, showing exactly when the attack intensified.</p>
+                        <p className="text-sm italic border-t border-slate-800 pt-2 text-slate-500">Requirement: Ensure you have launched a brute force attack within the selected time range.</p>
+                      </div>
                     </div>
 
+                    {/* Panel 2: Usernames */}
                     <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-700 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-colors"></div>
-                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center"><i className="fas fa-users text-orange-400 mr-3 text-2xl"></i>Panel 2: Top attempted usernames</h4>
-                      <div className="relative z-10"><CodeBlock code={`index=lab_data sshd "Failed password"\n| rex "for (invalid user )?(?<attempted_user>\\S+) from"\n| stats count by attempted_user\n| sort - count\n| head 10`} /></div>
-                      <p className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl">This table is great for showing which accounts attackers keep targeting.</p>
+                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center">
+                        <i className="fas fa-users text-orange-400 mr-3 text-2xl"></i>Panel 2: Top Attempted Usernames
+                      </h4>
+                      <div className="relative z-10 space-y-4">
+                        <div>
+                          <p className="text-xs text-green-400 font-bold uppercase mb-1">Option A (Permanent Fields):</p>
+                          <CodeBlock code={`index=lab_data (sshd OR vsftpd) ("Failed" OR "failure")\n| stats count by user_attempted\n| sort - count\n| head 10`} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-yellow-400 font-bold uppercase mb-1">Option B (Inline Extraction):</p>
+                          <CodeBlock code={`index=lab_data (sshd OR vsftpd) ("Failed" OR "failure")\n| rex "for (invalid user )?(?<user_attempted>\\S+) from"\n| rex "ruser=(?<user_attempted>\\S+)"\n| stats count by user_attempted\n| sort - count\n| head 10`} />
+                        </div>
+                      </div>
+                      <div className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl space-y-2">
+                        <p><strong>What to expect:</strong> A bar chart or table listing usernames like <code>admin</code>, <code>root</code>, and <code>msfadmin</code>. This reveals the specific dictionary list the attacker is using.</p>
+                        <p className="text-sm italic border-t border-slate-800 pt-2 text-slate-500">Requirement: The field 'user_attempted' must be extracted correctly to see values here.</p>
+                      </div>
                     </div>
 
+                    {/* Panel 3: Root Targeting */}
                     <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-700 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-colors"></div>
-                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center"><i className="fas fa-user-shield text-purple-400 mr-3 text-2xl"></i>Panel 3: Root account targeting</h4>
-                      <div className="relative z-10"><CodeBlock code={`index=lab_data sshd ("root" AND "Failed password")\n| rex "from (?<attacker_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| stats count by attacker_ip\n| sort - count`} /></div>
-                      <p className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl">This panel is simple but powerful. It highlights attempts against one of the most sensitive Linux accounts.</p>
+                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center">
+                        <i className="fas fa-user-shield text-purple-400 mr-3 text-2xl"></i>Panel 3: Root Account Targeting
+                      </h4>
+                      <div className="relative z-10 space-y-4">
+                        <div>
+                          <p className="text-xs text-green-400 font-bold uppercase mb-1">Option A (Permanent Fields):</p>
+                          <CodeBlock code={`index=lab_data (sshd OR vsftpd) user_attempted="root" ("Failed" OR "failure")\n| stats count by src_ip\n| sort - count`} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-yellow-400 font-bold uppercase mb-1">Option B (Inline Extraction):</p>
+                          <CodeBlock code={`index=lab_data (sshd OR vsftpd) "root" ("Failed" OR "failure")\n| rex "from (?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "rhost=(?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| stats count by src_ip\n| sort - count`} />
+                        </div>
+                      </div>
+                      <div className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl space-y-2">
+                        <p><strong>What to expect:</strong> A single-value panel or table showing only attempts against the <code>root</code> user. Even a count of 1 is a critical security event.</p>
+                        <p className="text-sm italic border-t border-slate-800 pt-2 text-slate-500">Requirement: At least one attempt against 'root' must exist in your logs.</p>
+                      </div>
                     </div>
 
+                    {/* Panel 4: Quality Check */}
                     <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-700 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl group-hover:bg-yellow-500/20 transition-colors"></div>
-                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center"><i className="fas fa-triangle-exclamation text-yellow-400 mr-3 text-2xl"></i>Panel 4: Data quality check</h4>
-                      <div className="relative z-10"><CodeBlock code={`index=lab_data\n| stats count by sourcetype\n| sort - count`} /></div>
-                      <p className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl">This is a beginner lifesaver. If your expected sourcetype is missing here, the problem is probably your ingestion or parsing, not your detection logic.</p>
+                      <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center">
+                        <i className="fas fa-triangle-exclamation text-yellow-400 mr-3 text-2xl"></i>Panel 4: Data Quality Check
+                      </h4>
+                      <div className="relative z-10"><CodeBlock code={`index=lab_data\n| stats count by sourcetype, source\n| sort - count`} /></div>
+                      <div className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl space-y-2">
+                        <p><strong>What to expect:</strong> A pie chart or table showing your sourcetypes (<code>sshd</code>, <code>vsftpd</code>). If a sourcetype is missing, your logs are not being ingested correctly.</p>
+                        <p className="text-sm italic border-t border-slate-800 pt-2 text-slate-500">Requirement: Data must be arriving via Syslog (UDP/514) for this to populate.</p>
+                      </div>
                     </div>
                   </div>
 
                   <SubHeader title="How to build the dashboard in Splunk" />
                   <div className="glass-panel p-8 rounded-3xl border border-slate-700 mb-10">
                     <ol className="list-decimal pl-6 space-y-4 text-slate-300 text-lg font-medium leading-relaxed">
-                      <li>Run the search in Search & Reporting and confirm it returns the data you expect.</li>
+                      <li>Run the search in <strong>Search & Reporting</strong> and confirm it returns the data you expect.</li>
                       <li>Click <strong>Save As &gt; Dashboard Panel</strong>.</li>
-                      <li>Create a new dashboard or add it to an existing one.</li>
-                      <li>Choose the right visualization type, such as line chart, bar chart, or table.</li>
-                      <li>Give the panel a clear title that describes the question being answered.</li>
-                      <li>Test the time range and confirm the panel still works after refresh.</li>
+                      <li>Create a new dashboard titled <code className="text-blue-300 italic">SOC Attack Overview</code>.</li>
+                      <li>Choose the visualization type: <strong>Line Chart</strong> for trends, <strong>Bar Chart</strong> for users, or <strong>Single Value</strong> for root targeting.</li>
+                      <li>Give the panel a clear title (e.g., "Active Brute Force Attempts").</li>
+                      <li>Change the time range to <strong>"Last 60 Minutes"</strong> and confirm the data updates correctly.</li>
                     </ol>
                   </div>
 
@@ -1459,18 +1556,18 @@
                   <div className="space-y-4 mb-10">
                     <Accordion title="My dashboard panel is empty" icon="fas fa-chart-column" defaultOpen={false}>
                       <ul className="list-disc pl-6 space-y-3 text-lg leading-relaxed text-slate-300">
-                        <li>Run the same search in Search & Reporting first. If it fails there, it will also fail in the dashboard.</li>
-                        <li>Check the time picker. Historical BOTSv3 data often needs <strong>All time</strong>.</li>
-                        <li>Make sure the fields in the search actually exist in your data.</li>
-                        <li>If you used <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">rex</code> in the original search, make sure you kept it in the saved panel search too.</li>
+                        <li><strong>Check the Index:</strong> Verify you are definitely searching <code>index=lab_data</code>. If you used a different index, update the SPL.</li>
+                        <li><strong>Check the Time Picker:</strong> Historical lab data often defaults to a window where no logs exist. Try <strong>"All Time"</strong> to verify data presence.</li>
+                        <li><strong>Inline Regex vs Persistent:</strong> If Option A is empty, use Option B. If both are empty, your extraction logic (the <code>rex</code> command) is not matching the text in your raw logs.</li>
+                        <li><strong>Permissions:</strong> If you saved your extraction as <strong>Private</strong> in Tab 7, the dashboard system may not be able to "see" those fields.</li>
                       </ul>
                     </Accordion>
 
-                    <Accordion title="The chart looks confusing" icon="fas fa-eye">
+                    <Accordion title="The charts look confusing or blank" icon="fas fa-eye">
                       <ul className="list-disc pl-6 space-y-3 text-lg leading-relaxed text-slate-300">
-                        <li>Reduce the number of series. Too many attacker IPs on one chart can make it unreadable.</li>
-                        <li>Use a table instead of a chart if the goal is exact values.</li>
-                        <li>Use <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">head</code> after sorting if you only want the top few values.</li>
+                        <li><strong>Visualization Type:</strong> A <code>timechart</code> command <em>must</em> be viewed as a chart (Line/Area), not a list of text.</li>
+                        <li><strong>Reduce Noise:</strong> Use the <code className="font-code text-blue-300 bg-blue-900/30 px-1 rounded">head 10</code> command to prevent one chart from showing 50 different usernames at once.</li>
+                        <li><strong>Data Volume:</strong> If the Kali attack is too slow (using <code>-t 1</code>), the spikes in your <code>timechart</code> may be too small to notice. Increase attack speed to see clear results.</li>
                       </ul>
                     </Accordion>
                   </div>
@@ -1478,29 +1575,29 @@
                   <SubHeader title="Final beginner reminders" />
                   <div className="grid md:grid-cols-2 gap-6 mb-12">
                     <InfoCard icon="fas fa-seedling" title="Start simple" tone="green">
-                      A good analyst does not begin with the fanciest query. They begin with a simple question and confirm the data exists first.
+                      A good analyst does not begin with the fanciest query. They confirm the raw logs exist (<code>index=lab_data</code>) before applying filters.
                     </InfoCard>
                     <InfoCard icon="fas fa-magnifying-glass-chart" title="Inspect before assuming" tone="blue">
-                      If a field is blank, do not panic. Open the event and inspect the actual field names and raw text first.
+                      If a field is blank, expand the raw event. Check if the text matches your regex (e.g., is it "from" or "rhost="?).
                     </InfoCard>
                     <InfoCard icon="fas fa-clock-rotate-left" title="Remember the time picker" tone="yellow">
-                      Empty results are often caused by the wrong time range, especially when working with historical datasets like BOTSv3.
+                      Empty results are 90% of the time caused by the wrong time range. Ensure the Splunk clock matches your lab VM's clock.
                     </InfoCard>
-                    <InfoCard icon="fas fa-pen-to-square" title="Write notes like a SOC analyst" tone="purple">
-                      Save your findings, IPs, usernames, and assumptions as you go. Good analysts search well, but great analysts document well.
+                    <InfoCard icon="fas fa-pen-to-square" title="Document your findings" tone="purple">
+                      A dashboard is a report. Label your panels clearly so a manager can understand the threat without reading your SPL code.
                     </InfoCard>
                   </div>
 
                   <Quiz
-                    question="What should you do before saving a search as a dashboard panel?"
+                    question="What is the safest way to ensure a dashboard panel will display data?"
                     options={[
                       'Build the dashboard first and test later',
-                      'Make sure the search already works in Search & Reporting',
-                      'Remove all field extractions to make the search simpler',
-                      'Use transaction even when you do not understand it'
+                      'Make sure the search returns results in the Statistics tab of Search & Reporting first',
+                      'Use only the default fields provided by Splunk',
+                      'Never use the rex command in a dashboard'
                     ]}
                     answerIndex={1}
-                    explanation="A dashboard should always be built from a search that already works perfectly in the Search app. If the base search is broken, the panel will also be broken."
+                    explanation="You must validate that your SPL works in the Search app first. If the Statistics tab there is empty, your dashboard panel will also be empty."
                   />
                 </div>
               )}
