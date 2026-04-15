@@ -32,7 +32,12 @@
     
     /* Animations */
     .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
     @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(15px); }
       to { opacity: 1; transform: translateY(0); }
     }
@@ -379,7 +384,7 @@
       };
 
       return (
-        <div className={`border rounded-2xl p-6 my-6 transition-all duration-300 hover:-translate-y-1 ${tones[tone]}`}>
+        <div className={`border rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 ${tones[tone]}`}>
           <div className="flex items-start gap-5">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${iconTones[tone]}`}>
               <i className={`${icon} text-xl drop-shadow-md`}></i>
@@ -395,7 +400,7 @@
 
     /* Premium Step Card */
     const StepCard = ({ step, icon, title, children }) => (
-      <div className="glass-panel rounded-2xl p-6 border-l-4 border-l-blue-500 my-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+      <div className="glass-panel rounded-2xl p-6 border-l-4 border-l-blue-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
         <div className="flex items-start gap-5">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600/30 to-blue-900/30 border border-blue-500/30 flex items-center justify-center shrink-0 shadow-inner relative overflow-hidden">
             <div className="absolute inset-0 bg-blue-400/10"></div>
@@ -489,23 +494,253 @@
       )
     };
 
+    const CTFChallenge = ({ num, skill, scenario, question, hint1, hint2, spl, answer, explanation }) => {
+      const [revealed, setRevealed] = useState(0); 
+
+      return (
+        <div className="glass-panel p-6 md:p-8 rounded-2xl my-8 relative overflow-hidden shadow-xl transition-all duration-300 hover:border-slate-600">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-400 to-indigo-600"></div>
+          
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6 gap-4 pl-3">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300 bg-blue-900/40 px-3 py-1 rounded-md border border-blue-500/30 shadow-sm">Challenge {num}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{skill}</span>
+              </div>
+              <h3 className="text-xl md:text-2xl font-bold text-white leading-snug tracking-tight">{question}</h3>
+            </div>
+            <div className="hidden md:flex bg-slate-800/80 w-14 h-14 rounded-xl border border-slate-700 items-center justify-center shrink-0 shadow-inner">
+              <i className="fas fa-flag text-blue-400 text-xl drop-shadow-md"></i>
+            </div>
+          </div>
+          
+          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 mb-6 ml-3 shadow-inner">
+            <p className="text-slate-300 text-[15px]"><span className="text-slate-500 font-semibold mr-2">Scenario:</span>{scenario}</p>
+          </div>
+          
+          <div className="space-y-5 ml-3">
+            <div className="flex flex-wrap gap-3">
+              <button onClick={() => setRevealed(Math.max(revealed, 1))} className={`text-sm px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-md ${revealed >= 1 ? 'bg-slate-800/50 text-slate-500 cursor-default border border-slate-700/50' : 'bg-blue-600 hover:bg-blue-500 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/30'}`}>
+                {revealed >= 1 ? <><i className="fas fa-unlock mr-2"></i>Hint 1</> : <><i className="fas fa-lock mr-2"></i>Reveal Hint 1</>}
+              </button>
+              
+              <button onClick={() => setRevealed(Math.max(revealed, 2))} disabled={revealed < 1} className={`text-sm px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-md ${revealed >= 2 ? 'bg-slate-800/50 text-slate-500 cursor-default border border-slate-700/50' : revealed < 1 ? 'bg-slate-900/30 text-slate-600 cursor-not-allowed border border-slate-800/50' : 'bg-yellow-600 hover:bg-yellow-500 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-yellow-900/30'}`}>
+                {revealed >= 2 ? <><i className="fas fa-unlock mr-2"></i>Hint 2</> : <><i className="fas fa-lock mr-2"></i>Reveal Hint 2</>}
+              </button>
+
+              <button onClick={() => setRevealed(Math.max(revealed, 3))} disabled={revealed < 2} className={`text-sm px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-md ${revealed >= 3 ? 'bg-slate-800/50 text-slate-500 cursor-default border border-slate-700/50' : revealed < 2 ? 'bg-slate-900/30 text-slate-600 cursor-not-allowed border border-slate-800/50' : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-900/30'}`}>
+                {revealed >= 3 ? <><i className="fas fa-check-circle mr-2"></i>Solved</> : <><i className="fas fa-key mr-2"></i>Reveal Answer & SPL</>}
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {revealed >= 1 && (
+                <div className="p-5 bg-slate-900/80 rounded-xl border border-slate-700/80 text-slate-300 text-[15px] fade-in-up flex items-start shadow-inner">
+                  <div className="bg-yellow-500/10 p-2 rounded-lg mr-4 shrink-0 border border-yellow-500/20">
+                    <i className="fas fa-lightbulb text-yellow-400 text-lg"></i>
+                  </div>
+                  <div><strong className="text-white block mb-1 tracking-tight text-sm uppercase">Hint 1</strong> {hint1}</div>
+                </div>
+              )}
+              
+              {revealed >= 2 && (
+                <div className="p-5 bg-slate-900/80 rounded-xl border border-slate-700/80 text-slate-300 text-[15px] fade-in-up flex items-start shadow-inner">
+                  <div className="bg-orange-500/10 p-2 rounded-lg mr-4 shrink-0 border border-orange-500/20">
+                    <i className="fas fa-lightbulb text-orange-400 text-lg"></i>
+                  </div>
+                  <div><strong className="text-white block mb-1 tracking-tight text-sm uppercase">Hint 2</strong> {hint2}</div>
+                </div>
+              )}
+            </div>
+
+            {revealed >= 3 && (
+              <div className="p-6 bg-slate-900/95 rounded-2xl border border-emerald-800/40 text-slate-300 text-sm fade-in-up space-y-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                <div>
+                  <span className="flex items-center text-[11px] uppercase font-bold text-slate-400 mb-3 tracking-widest"><i className="fas fa-terminal mr-2"></i>Starter SPL</span>
+                  <CodeBlock code={spl} />
+                </div>
+                <div>
+                  <span className="flex items-center text-[11px] uppercase font-bold text-emerald-400 mb-3 tracking-widest"><i className="fas fa-flag mr-2"></i>Expected Flag</span>
+                  <code className="text-emerald-400 font-mono text-[15px] bg-[#0d1117] border border-slate-700/80 px-5 py-3.5 rounded-xl block shadow-inner">{answer}</code>
+                </div>
+                <div className="bg-indigo-950/30 p-6 rounded-xl border border-indigo-500/20 shadow-inner">
+                  <span className="flex items-center text-[11px] uppercase font-bold text-indigo-300 mb-2 tracking-widest"><i className="fas fa-graduation-cap mr-2"></i>Analyst Insight</span>
+                  <p className="text-slate-200 leading-relaxed text-[15px]">{explanation}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
     /* ALL ORIGINAL DATA EXACTLY AS PROVIDED */
     const genericChallengeData = [
-      { num: 1, skill: 'Data discovery', scenario: 'You are brand new to Splunk and want to understand what kind of data is inside the botsv3 index before hunting threats.', question: 'Which sourcetypes appear the most in the botsv3 index?', hint1: 'Start broad and count by sourcetype.', hint2: 'Sort from highest to lowest.', spl: 'index=botsv3 earliest=0 | stats count by sourcetype | sort - count', answer: 'Use the top values from your own results table.', explanation: 'This teaches the first habit of a SOC analyst: understand your data before you chase an alert.' },
-      { num: 2, skill: 'Host discovery', scenario: 'You want to see which systems generate the most activity.', question: 'Which hosts create the highest event volume in the botsv3 index?', hint1: 'Count by host.', hint2: 'Sort descending.', spl: 'index=botsv3 earliest=0 | stats count by host | sort - count', answer: 'Use the top host names from your own environment.', explanation: 'This helps beginners identify major systems before they investigate incidents.' },
-      { num: 3, skill: 'Failed logons', scenario: 'You want to find the accounts with the most failed Windows logons.', question: 'Which usernames show the most failed EventCode 4625 activity?', hint1: 'Stay on Windows failed logons.', hint2: 'Count by user.', spl: 'index=botsv3 EventCode=4625 user=* | stats count by user | sort - count', answer: 'Use the top usernames in your own table.', explanation: 'This is one of the most common Level 1 analyst tasks.' },
-      { num: 4, skill: 'Failed logon sources', scenario: 'You found failed logons and now want to know where they came from.', question: 'Which source IPs appear most often in failed logon activity?', hint1: 'Start with EventCode 4625.', hint2: 'Use the correct source field from your data.', spl: 'index=botsv3 EventCode=4625 | stats count by src | sort - count', answer: 'Use the top source values from your own data, or inspect the event if src is empty.', explanation: 'This teaches that field names can differ and must be verified.' },
-      { num: 5, skill: 'Success after failures', scenario: 'You suspect some failures may later turn into a successful login.', question: 'Can you find a user with many failures followed by a success?', hint1: 'Search 4624 and 4625 together.', hint2: 'Start with a table view before you overcomplicate it.', spl: 'index=botsv3 (EventCode=4624 OR EventCode=4625) user=* | table _time user src host EventCode', answer: 'This is a manual analyst challenge. Use your own pivoting and document the real answer you find.', explanation: 'This introduces simple correlation work to beginners.' },
-      { num: 6, skill: 'Rare processes', scenario: 'You want to find unusual endpoint process activity.', question: 'Which rare processes appear in Sysmon process creation data?', hint1: 'Use Sysmon EventCode 1.', hint2: 'Try the rare command on the process image.', spl: 'index=botsv3 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 | rare limit=15 Image', answer: 'Use the unusual process names from your own result set.', explanation: 'Rare processes are excellent hunting leads for beginners.' },
-      { num: 7, skill: 'Parent-child process review', scenario: 'You found a suspicious process and want to know what launched it.', question: 'What parent process started your suspicious process?', hint1: 'Reuse your rare process result.', hint2: 'Add ParentImage and CommandLine to a table.', spl: 'index=botsv3 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 Image="<your_process_here>" | table _time host user Image ParentImage CommandLine', answer: 'Use the ParentImage value from the event you selected.', explanation: 'This reinforces endpoint process ancestry, a key SOC skill.' },
-      { num: 8, skill: 'PowerShell usage', scenario: 'PowerShell is common in both administration and attacks.', question: 'Which hosts show the most PowerShell-related activity?', hint1: 'Look in Sysmon process creation logs.', hint2: 'Search for powershell in Image or CommandLine.', spl: 'index=botsv3 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 (Image="*powershell*" OR CommandLine="*powershell*") | stats count by host | sort - count', answer: 'Use the host names at the top of your own results.', explanation: 'This helps beginners separate normal administration from activity that deserves a closer look.' },
-      { num: 9, skill: 'DNS visibility', scenario: 'You want to summarize common DNS behavior before hunting suspicious domains.', question: 'What are the most common DNS queries in the botsv3 data?', hint1: 'Use stream:dns.', hint2: 'Top query is a simple start.', spl: 'index=botsv3 sourcetype=stream:dns | top limit=10 query', answer: 'Use the top domains from your results.', explanation: 'DNS data is a powerful hunting source and a good habit to explore early.' },
-      { num: 10, skill: 'HTTP visibility', scenario: 'You want to know which domains are most common in HTTP traffic.', question: 'Which HTTP domains appear most often in stream:http?', hint1: 'Use stream:http.', hint2: 'Look at uri_domain.', spl: 'index=botsv3 sourcetype=stream:http uri_domain=* | top limit=10 uri_domain', answer: 'Use the top domain names from your results.', explanation: 'This gives beginners a simple first step for web-traffic review.' },
-      { num: 11, skill: 'Unique port fan-out', scenario: 'A source might be touching many different destination ports.', question: 'Which source IP touches the highest number of unique destination ports?', hint1: 'Use dc(dest_port).', hint2: 'Count distinct ports by source.', spl: 'index=botsv3 src=* dest_port=* | stats dc(dest_port) as unique_ports by src | sort - unique_ports', answer: 'Use the top source IP from your own results.', explanation: 'This teaches beginners how to spot scanning or wide recon behavior.' },
-      { num: 12, skill: 'Unique destination fan-out', scenario: 'A host might be contacting many different destinations.', question: 'Which source IP contacted the highest number of unique destinations?', hint1: 'Use dc(dest).', hint2: 'Count distinct dest by src.', spl: 'index=botsv3 src=* dest=* | stats dc(dest) as unique_dests by src | sort - unique_dests', answer: 'Use the top source IP in your own table.', explanation: 'This is a practical hunt for scanning, spread, or noisy automation.' },
-      { num: 13, skill: 'Top failed-login users', scenario: 'You are building a very small dashboard panel for failed users.', question: 'Can you build a top 5 failed-login users table?', hint1: 'Reuse your failed-login query.', hint2: 'Use head 5 after sorting.', spl: 'index=botsv3 EventCode=4625 user=* | stats count by user | sort - count | head 5', answer: 'Use the top five usernames from your result table.', explanation: 'This shows how hunts often become dashboard content.' },
-      { num: 14, skill: 'Field inspection', scenario: 'A search is failing because you guessed a field name.', question: 'What field in your own events really stores the source IP?', hint1: 'Expand a few raw events.', hint2: 'Do not assume every source uses src.', spl: 'index=botsv3 EventCode=4625 | head 5', answer: 'Your answer is whatever field you verify in the event details.', explanation: 'This teaches one of the most valuable habits in Splunk: inspect first, guess less.' },
-      { num: 15, skill: 'Analyst note writing', scenario: 'A SOC analyst must explain findings clearly, not only run searches.', question: 'Pick one finding and write a two-sentence analyst note about what happened and what you would check next.', hint1: 'Use values from your own searches.', hint2: 'Write like you are handing off to another analyst.', spl: 'Use any previous search as evidence for your note.', answer: 'There is no fixed flag here. Your answer is your short analyst summary.', explanation: 'This helps beginners practice communication, which is a real SOC skill.' }
+      {
+        num: 1,
+        skill: 'Data discovery',
+        scenario: 'You are brand new to Splunk and want to understand what kind of data exists in the BOTSv3 dataset.',
+        question: 'Which sourcetypes appear the most in the botsv3 index?',
+        hint1: 'Start broad and count by sourcetype.',
+        hint2: 'Sort from highest to lowest.',
+        spl: 'index=botsv3 earliest=0 | stats count by sourcetype | sort 0 - count',
+        answer: 'Use the top sourcetypes from your own results table.',
+        explanation: 'This is the fastest way to understand what data sources you actually have before you hunt.'
+      },
+      {
+        num: 2,
+        skill: 'Host discovery',
+        scenario: 'You want to see which systems generate the most activity.',
+        question: 'Which hosts create the highest event volume in the botsv3 index?',
+        hint1: 'Count by host.',
+        hint2: 'Sort descending.',
+        spl: 'index=botsv3 earliest=0 | stats count by host | sort 0 - count',
+        answer: 'Use the top host names from your own results.',
+        explanation: 'This helps beginners identify the busiest systems first.'
+      },
+      {
+        num: 3,
+        skill: 'Host and data mapping',
+        scenario: 'You want to learn which kinds of logs exist for each system.',
+        question: 'Which sourcetypes are associated with each host?',
+        hint1: 'Count events by host and sourcetype together.',
+        hint2: 'Sort by host so the table is easy to read.',
+        spl: 'index=botsv3 earliest=0 | stats count by host sourcetype | sort 0 host - count',
+        answer: 'Use the table to see which data sources belong to each host.',
+        explanation: 'This teaches beginners how to connect systems to their available telemetry.'
+      },
+      {
+        num: 4,
+        skill: 'Windows asset inventory',
+        scenario: 'You want a simple inventory of the Windows endpoints in the environment.',
+        question: 'Which Windows hosts and operating systems appear in winhostmon data?',
+        hint1: 'Use the winhostmon sourcetype.',
+        hint2: 'The operating system details are in the operatingsystem source.',
+        spl: 'index=botsv3 earliest=0 sourcetype=winhostmon source=operatingsystem | dedup host | table host OS',
+        answer: 'Use the host and OS values from your own table.',
+        explanation: 'This is a clean beginner inventory query that returns useful endpoint context.'
+      },
+      {
+        num: 5,
+        skill: 'Windows OS summary',
+        scenario: 'Now you want to summarize the operating systems across those Windows endpoints.',
+        question: 'Which operating system versions appear, and how many hosts use each one?',
+        hint1: 'Stay on winhostmon and the operatingsystem source.',
+        hint2: 'Count by OS.',
+        spl: 'index=botsv3 earliest=0 sourcetype=winhostmon source=operatingsystem | stats count by OS | sort 0 - count',
+        answer: 'Use the OS values and counts from your own results.',
+        explanation: 'This helps beginners turn raw inventory into a quick summary.'
+      },
+      {
+        num: 6,
+        skill: 'DNS visibility',
+        scenario: 'You want to understand common DNS activity before looking for suspicious domains.',
+        question: 'What are the most common DNS queries in the dataset?',
+        hint1: 'Use stream:dns.',
+        hint2: 'Use the query field.',
+        spl: 'index=botsv3 earliest=0 sourcetype="stream:dns" query=* | top limit=10 query',
+        answer: 'Use the top DNS queries from your own results.',
+        explanation: 'DNS is one of the easiest and most useful places to start hunting.'
+      },
+      {
+        num: 7,
+        skill: 'HTTP visibility',
+        scenario: 'You want a quick overview of the most common web destinations in the environment.',
+        question: 'Which HTTP domains appear most often?',
+        hint1: 'Use stream:http.',
+        hint2: 'Look at uri_domain.',
+        spl: 'index=botsv3 earliest=0 sourcetype="stream:http" uri_domain=* | top limit=10 uri_domain',
+        answer: 'Use the top domains from your own results.',
+        explanation: 'This gives beginners a fast summary of common web traffic.'
+      },
+      {
+        num: 8,
+        skill: 'HTTP path review',
+        scenario: 'You want to see which web paths are requested the most.',
+        question: 'Which URI paths appear most often in HTTP traffic?',
+        hint1: 'Stay on stream:http.',
+        hint2: 'Use uri_path.',
+        spl: 'index=botsv3 earliest=0 sourcetype="stream:http" uri_path=* | top limit=10 uri_path',
+        answer: 'Use the top URI paths from your own results.',
+        explanation: 'This helps beginners move from domains to the actual web content being requested.'
+      },
+      {
+        num: 9,
+        skill: 'Process discovery',
+        scenario: 'You want to explore process activity on Windows endpoints without doing advanced hunting yet.',
+        question: 'Which process images appear most often in Sysmon process creation logs?',
+        hint1: 'Use Sysmon EventCode 1.',
+        hint2: 'Count by Image.',
+        spl: 'index=botsv3 earliest=0 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 | top limit=10 Image',
+        answer: 'Use the most common Image values from your own results.',
+        explanation: 'This is a beginner-friendly way to learn what normal endpoint activity looks like.'
+      },
+      {
+        num: 10,
+        skill: 'PowerShell host review',
+        scenario: 'You want to find which endpoints show PowerShell activity.',
+        question: 'Which hosts show the most PowerShell-related process activity?',
+        hint1: 'Stay in Sysmon process creation logs.',
+        hint2: 'Search for the word powershell and count by host.',
+        spl: 'index=botsv3 earliest=0 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 powershell | stats count by host | sort 0 - count',
+        answer: 'Use the hosts at the top of your own results.',
+        explanation: 'This is a simple first step for reviewing scripting activity.'
+      },
+      {
+        num: 11,
+        skill: 'Parent-child process review',
+        scenario: 'You found PowerShell activity and want to see what launched it.',
+        question: 'What parent processes launched PowerShell activity?',
+        hint1: 'Reuse the PowerShell Sysmon search.',
+        hint2: 'Display Image, ParentImage, and CommandLine in a table.',
+        spl: 'index=botsv3 earliest=0 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 powershell | table _time host Image ParentImage CommandLine | sort 0 _time',
+        answer: 'Use the ParentImage values from the events you review.',
+        explanation: 'This introduces process ancestry without making the search complicated.'
+      },
+      {
+        num: 12,
+        skill: 'CPU activity',
+        scenario: 'You want to learn which processes appear most often in process performance data.',
+        question: 'Which process names appear most often in Perfmon process data?',
+        hint1: 'Use perfmonmk:process.',
+        hint2: 'Count by process.',
+        spl: 'index=botsv3 earliest=0 sourcetype="perfmonmk:process" process=* | top limit=10 process',
+        answer: 'Use the top process names from your own results.',
+        explanation: 'This gives beginners another view of endpoint activity beyond Sysmon.'
+      },
+      {
+        num: 13,
+        skill: 'High CPU review',
+        scenario: 'You want to find obvious high-usage process events.',
+        question: 'Which process events show 100 percent CPU usage?',
+        hint1: 'Stay on perfmonmk:process.',
+        hint2: 'Filter on process_cpu_used_percent=100.',
+        spl: 'index=botsv3 earliest=0 sourcetype="perfmonmk:process" process_cpu_used_percent=100 | table _time host process process_cpu_used_percent | sort 0 _time',
+        answer: 'Use the process names and hosts from your own results.',
+        explanation: 'This is a very simple performance-based hunting query.'
+      },
+      {
+        num: 14,
+        skill: 'Email visibility',
+        scenario: 'You want to explore who appears most often as an email sender in SMTP traffic.',
+        question: 'Which senders appear most often in SMTP events?',
+        hint1: 'Use stream:smtp.',
+        hint2: 'Count by sender.',
+        spl: 'index=botsv3 earliest=0 sourcetype="stream:smtp" sender=* | top limit=10 sender',
+        answer: 'Use the top senders from your own results.',
+        explanation: 'This gives beginners an easy way to start exploring email-related data.'
+      },
+      {
+        num: 15,
+        skill: 'Cloud activity discovery',
+        scenario: 'You want a simple first look at AWS activity in the dataset.',
+        question: 'Which AWS CloudTrail event names appear most often?',
+        hint1: 'Use aws:cloudtrail.',
+        hint2: 'Count by eventName.',
+        spl: 'index=botsv3 earliest=0 sourcetype="aws:cloudtrail" eventName=* | top limit=10 eventName',
+        answer: 'Use the top CloudTrail event names from your own results.',
+        explanation: 'This gives beginners a very safe starting point for cloud log exploration.'
+      }
     ];
 
     const ctfData = [
@@ -926,46 +1161,7 @@
                   </InfoCard>
 
                   {genericChallengeData.map((ctf, index) => (
-                    <div key={index} className="glass-panel p-6 md:p-8 rounded-3xl my-8 relative overflow-hidden group">
-                      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-cyan-400 to-blue-600 transition-all group-hover:w-2"></div>
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6 gap-4">
-                        <div>
-                          <span className="text-xs font-bold uppercase tracking-widest text-cyan-300 bg-cyan-900/30 px-3 py-1 rounded-full border border-cyan-500/30">Drill {ctf.num} • {ctf.skill}</span>
-                          <h3 className="text-2xl font-bold mt-4 text-white leading-snug">{ctf.question}</h3>
-                        </div>
-                        <div className="hidden md:flex w-14 h-14 bg-slate-800/80 rounded-2xl border border-slate-700 items-center justify-center flex-shrink-0 shadow-inner group-hover:bg-slate-800 transition-colors">
-                          <i className="fas fa-compass text-cyan-400 text-2xl"></i>
-                        </div>
-                      </div>
-                      <p className="text-slate-300 mb-6 text-base italic border-l-4 border-slate-600 pl-4 py-1 bg-slate-800/30 rounded-r-lg">{ctf.scenario}</p>
-                      
-                      <div className="grid xl:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                          <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 text-sm shadow-inner">
-                            <strong className="text-cyan-300 uppercase text-xs tracking-wider mb-1 block">Hint 1</strong> 
-                            <span className="text-slate-200 text-base">{ctf.hint1}</span>
-                          </div>
-                          <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 text-sm shadow-inner">
-                            <strong className="text-cyan-300 uppercase text-xs tracking-wider mb-1 block">Hint 2</strong> 
-                            <span className="text-slate-200 text-base">{ctf.hint2}</span>
-                          </div>
-                          <div className="mt-6">
-                            <span className="block text-xs uppercase font-bold text-slate-500 mb-2 tracking-widest">Starter SPL</span>
-                            <CodeBlock code={ctf.spl} />
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="bg-slate-900/80 rounded-2xl border border-slate-700/80 p-5 shadow-inner">
-                            <span className="block text-xs uppercase font-bold text-slate-500 mb-2 tracking-widest">How to treat the answer</span>
-                            <p className="text-green-400 font-medium text-base leading-relaxed">{ctf.answer}</p>
-                          </div>
-                          <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 rounded-2xl border border-cyan-800/40 p-5 shadow-inner h-full">
-                            <span className="block text-xs uppercase font-bold text-cyan-400 mb-2 tracking-widest">Why this matters</span>
-                            <p className="text-slate-200 text-base leading-relaxed">{ctf.explanation}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <CTFChallenge key={index} {...ctf} />
                   ))}
                 </div>
               )}
@@ -980,53 +1176,14 @@
                     The original draft used placeholder flags such as <code className="font-code text-yellow-200 bg-yellow-900/40 px-1 rounded">FLAG{'{'}username{'}'}</code>. That is not true verification. In this revised version, the learner is told when an answer must come from the actual dataset visible in their own Splunk results.
                   </InfoCard>
 
+                  <br />
+
                   <InfoCard icon="fas fa-clock" title="Always set the time range first" tone="blue">
                     For BOTSv3 hunting, start with <strong>All time</strong> unless the challenge tells you to narrow it. A wrong time picker causes false “no data” frustration.
                   </InfoCard>
 
                   {ctfData.map((ctf, index) => (
-                    <div key={index} className="glass-panel p-6 md:p-8 rounded-3xl my-8 relative overflow-hidden group">
-                      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-500 to-indigo-500 transition-all group-hover:w-2"></div>
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6 gap-4">
-                        <div>
-                          <span className="text-xs font-bold uppercase tracking-widest text-blue-300 bg-blue-900/30 px-3 py-1 rounded-full border border-blue-500/30">Challenge {ctf.num} • {ctf.skill}</span>
-                          <h3 className="text-2xl font-bold mt-4 text-white leading-snug">{ctf.question}</h3>
-                        </div>
-                        <div className="hidden md:flex w-14 h-14 bg-slate-800/80 rounded-2xl border border-slate-700 items-center justify-center flex-shrink-0 shadow-inner group-hover:bg-slate-800 transition-colors">
-                          <i className="fas fa-flag text-blue-400 text-2xl"></i>
-                        </div>
-                      </div>
-                      <p className="text-slate-300 mb-6 text-base italic border-l-4 border-slate-600 pl-4 py-1 bg-slate-800/30 rounded-r-lg">{ctf.scenario}</p>
-                      
-                      <div className="grid lg:grid-cols-2 gap-8">
-                        <div>
-                          <div className="space-y-4">
-                            <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 text-sm shadow-inner">
-                              <strong className="text-blue-300 uppercase text-xs tracking-wider mb-1 block">Hint 1</strong> 
-                              <span className="text-slate-200 text-base">{ctf.hint1}</span>
-                            </div>
-                            <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 text-sm shadow-inner">
-                              <strong className="text-blue-300 uppercase text-xs tracking-wider mb-1 block">Hint 2</strong> 
-                              <span className="text-slate-200 text-base">{ctf.hint2}</span>
-                            </div>
-                          </div>
-                          <div className="mt-6">
-                            <span className="block text-xs uppercase font-bold text-slate-500 mb-2 tracking-widest">Starter SPL</span>
-                            <CodeBlock code={ctf.spl} />
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="bg-slate-900/80 rounded-2xl border border-slate-700/80 p-5 shadow-inner">
-                            <span className="block text-xs uppercase font-bold text-slate-500 mb-2 tracking-widest">How to treat the answer</span>
-                            <p className="text-green-400 font-medium text-base leading-relaxed">{ctf.answer}</p>
-                          </div>
-                          <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 rounded-2xl border border-purple-800/40 p-5 shadow-inner h-full">
-                            <span className="block text-xs uppercase font-bold text-purple-400 mb-2 tracking-widest">Why this matters to a SOC analyst</span>
-                            <p className="text-slate-200 text-base leading-relaxed">{ctf.explanation}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <CTFChallenge key={index} {...ctf} />
                   ))}
                 </div>
               )}
@@ -1288,7 +1445,7 @@
               {activeTab === 7 && (
                 <div className="fade-in space-y-12">
                   <div className="mb-6">
-                    <SectionHeader title="Phase 1: Field Extraction" icon="fas fa-microscope" />
+                    <SectionHeader title="Field Extraction" icon="fas fa-microscope" />
                     <p className="text-xl text-slate-300 leading-relaxed font-light">
                       Raw logs are unorganized. To build alerts, we must extract specific data points like <span className="text-blue-400 font-semibold">src_ip</span> and <span className="text-blue-400 font-semibold">user_attempted</span>. This "Data Engineering" phase ensures Splunk understands exactly what happened during your attack.
                     </p>
@@ -1297,13 +1454,12 @@
                   {/* Section 1: SSH Parsing */}
                   <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
                     <div className="flex items-center mb-6">
-                      <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mr-4">
-                        <i className="fas fa-terminal text-blue-400 text-xl"></i>
-                      </div>
-                      <SubHeader title="1. SSH Failure Extraction" />
+                      <h4 className="text-white font-bold text-2xl italic flex items-center">
+                        <i className="fas fa-terminal text-cyan-400 mr-3"></i> 1. SSH Failure Extraction
+                      </h4>
                     </div>
                     <p className="text-slate-300 mb-6 text-lg">Use the <code>rex</code> command to capture the IP and Username from the Metasploitable SSH syslog format.</p>
-                    <CodeBlock language="SPL" code={`index=lab_data sshd "Failed password"\n| rex "from (?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "for (?<user_attempted>\\S+) from"\n| table _time, src_ip, user_attempted`} />
+                    <CodeBlock language="SPL" code={`index=lab_data sshd "Failed password"\n| rex "from (?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| rex "for (invalid user )?(?<user_attempted>\\S+) from"\n| table _time, src_ip, user_attempted`} />
                     
                     <div className="mt-8">
                       <Accordion title="SSH Parsing Troubleshooting" icon="fas fa-info-circle">
@@ -1318,10 +1474,9 @@
                   {/* Section 2: FTP Parsing */}
                   <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
                     <div className="flex items-center mb-6">
-                      <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mr-4">
-                        <i className="fas fa-file-import text-purple-400 text-xl"></i>
-                      </div>
-                      <SubHeader title="2. FTP Failure Extraction" />
+                      <h4 className="text-white font-bold text-2xl italic flex items-center">
+                        <i className="fas fa-file-import text-red-400 mr-3"></i> 2. FTP Failure Extraction
+                      </h4>
                     </div>
                     <p className="text-slate-300 mb-6 text-lg">FTP logs use <code>ruser</code> and <code>rhost</code>. We apply a similar logic to map these to our standardized field names.</p>
                     <CodeBlock language="SPL" code={`index=lab_data vsftpd "authentication failure"\n| rex "ruser=(?<user_attempted>\\S+)"\n| rex "rhost=(?<src_ip>\\d+\\.\\d+\\.\\d+\\.\\d+)"\n| table _time, src_ip, user_attempted`} />
@@ -1339,10 +1494,9 @@
                   {/* Section 3: UI-Based Permanent Saving */}
                   <div className="glass-panel p-8 rounded-3xl border border-slate-700 bg-slate-900/20 relative">
                     <div className="flex items-center mb-6">
-                      <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center mr-4">
-                        <i className="fas fa-save text-green-400 text-xl"></i>
-                      </div>
-                      <SubHeader title="3. Making Fields Permanent" />
+                      <h4 className="text-white font-bold text-2xl italic flex items-center">
+                        <i className="fas fa-save text-green-400 mr-3"></i> 3. Making Fields Permanent
+                      </h4>
                     </div>
                     <p className="text-slate-300 mb-6 text-lg">Typing <code>rex</code> every time is inefficient. Follow these steps to save the fields in the Splunk UI.</p>
                     <div className="space-y-4 mb-8">
@@ -1371,7 +1525,7 @@
               {activeTab === 8 && (
                   <div className="fade-in space-y-12">
                     <div className="mb-6">
-                      <SectionHeader title="Phase 2: Alerting & Testing" icon="fas fa-bell" />
+                      <SectionHeader title="Alerting & Testing" icon="fas fa-bell" />
                       <p className="text-xl text-slate-300 leading-relaxed font-light">
                         Detections are automated guardians. In this lab, you will build three different alerts and perform the attacks from Kali to verify that your "SOC" can catch the threat in real-time.
                       </p>
@@ -1532,9 +1686,9 @@
                       <h4 className="font-extrabold text-white text-xl mb-4 relative z-10 flex items-center">
                         <i className="fas fa-triangle-exclamation text-yellow-400 mr-3 text-2xl"></i>Panel 4: Data Quality Check
                       </h4>
-                      <div className="relative z-10"><CodeBlock code={`index=lab_data\n| stats count by sourcetype, source\n| sort - count`} /></div>
+                      <div className="relative z-10"><CodeBlock code={`index=lab_data \n| rex "(?<service_tag>sshd|vsftpd)"\n| stats count by service_tag, host\n| sort - count`} /></div>
                       <div className="text-base text-slate-400 mt-4 leading-relaxed relative z-10 bg-slate-900/40 p-4 rounded-xl space-y-2">
-                        <p><strong>What to expect:</strong> A pie chart or table showing your sourcetypes (<code>sshd</code>, <code>vsftpd</code>). If a sourcetype is missing, your logs are not being ingested correctly.</p>
+                        <p><strong>What to expect:</strong> A bar chart or table showing your sourcetypes (<code>sshd</code>, <code>vsftpd</code>). If a sourcetype is missing, your logs are not being ingested correctly.</p>
                         <p className="text-sm italic border-t border-slate-800 pt-2 text-slate-500">Requirement: Data must be arriving via Syslog (UDP/514) for this to populate.</p>
                       </div>
                     </div>
