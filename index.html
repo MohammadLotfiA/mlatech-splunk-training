@@ -613,23 +613,23 @@
         num: 4,
         skill: 'Windows asset inventory',
         scenario: 'You want a simple inventory of the Windows endpoints in the environment.',
-        question: 'Which Windows hosts and operating systems appear in winhostmon data?',
-        hint1: 'Use the winhostmon sourcetype.',
-        hint2: 'The operating system details are in the operatingsystem source.',
-        spl: 'index=botsv3 earliest=0 sourcetype=winhostmon source=operatingsystem | dedup host | table host OS',
+        question: 'Which Windows hosts appear in WinHostMon data and what OS are they running?',
+        hint1: 'Use the WinHostMon sourcetype (capital W, H, M — this is the exact casing in BOTSv3).',
+        hint2: 'The OS details live in the OS field. Use dedup to get one row per host.',
+        spl: 'index=botsv3 earliest=0 sourcetype="WinHostMon" | dedup host | table host, OS',
         answer: 'Use the host and OS values from your own table.',
-        explanation: 'This is a clean beginner inventory query that returns useful endpoint context.'
+        explanation: 'WinHostMon is a scripted input that collects Windows host inventory. The sourcetype casing must match exactly: WinHostMon.'
       },
       {
         num: 5,
         skill: 'Windows OS summary',
         scenario: 'Now you want to summarize the operating systems across those Windows endpoints.',
         question: 'Which operating system versions appear, and how many hosts use each one?',
-        hint1: 'Stay on winhostmon and the operatingsystem source.',
-        hint2: 'Count by OS.',
-        spl: 'index=botsv3 earliest=0 sourcetype=winhostmon source=operatingsystem | stats count by OS | sort 0 - count',
+        hint1: 'Stay on the WinHostMon sourcetype.',
+        hint2: 'Count by the OS field.',
+        spl: 'index=botsv3 earliest=0 sourcetype="WinHostMon" | dedup host OS | stats count by OS | sort 0 - count',
         answer: 'Use the OS values and counts from your own results.',
-        explanation: 'This helps beginners turn raw inventory into a quick summary.'
+        explanation: 'This helps beginners turn raw inventory into a quick summary. The dedup ensures each host-OS pair is only counted once.'
       },
       {
         num: 6,
@@ -637,10 +637,10 @@
         scenario: 'You want to understand common DNS activity before looking for suspicious domains.',
         question: 'What are the most common DNS queries in the dataset?',
         hint1: 'Use stream:dns.',
-        hint2: 'Use the query field.',
-        spl: 'index=botsv3 earliest=0 sourcetype="stream:dns" query=* | top limit=10 query',
+        hint2: 'The DNS query name is stored in the query field.',
+        spl: 'index=botsv3 earliest=0 sourcetype="stream:dns" | top limit=10 query',
         answer: 'Use the top DNS queries from your own results.',
-        explanation: 'DNS is one of the easiest and most useful places to start hunting.'
+        explanation: 'DNS is one of the easiest and most useful places to start hunting. The query field in stream:dns holds the domain name being looked up.'
       },
       {
         num: 7,
@@ -648,10 +648,10 @@
         scenario: 'You want a quick overview of the most common web destinations in the environment.',
         question: 'Which HTTP domains appear most often?',
         hint1: 'Use stream:http.',
-        hint2: 'Look at uri_domain.',
-        spl: 'index=botsv3 earliest=0 sourcetype="stream:http" uri_domain=* | top limit=10 uri_domain',
+        hint2: 'Look at the site field, which holds the hostname portion of the URL.',
+        spl: 'index=botsv3 earliest=0 sourcetype="stream:http" | top limit=10 site',
         answer: 'Use the top domains from your own results.',
-        explanation: 'This gives beginners a fast summary of common web traffic.'
+        explanation: 'In BOTSv3 stream:http data, the site field holds the HTTP host header value. This gives a fast summary of common web traffic destinations.'
       },
       {
         num: 8,
@@ -659,7 +659,7 @@
         scenario: 'You want to see which web paths are requested the most.',
         question: 'Which URI paths appear most often in HTTP traffic?',
         hint1: 'Stay on stream:http.',
-        hint2: 'Use uri_path.',
+        hint2: 'Use the uri_path field.',
         spl: 'index=botsv3 earliest=0 sourcetype="stream:http" uri_path=* | top limit=10 uri_path',
         answer: 'Use the top URI paths from your own results.',
         explanation: 'This helps beginners move from domains to the actual web content being requested.'
@@ -669,55 +669,55 @@
         skill: 'Process discovery',
         scenario: 'You want to explore process activity on Windows endpoints without doing advanced hunting yet.',
         question: 'Which process images appear most often in Sysmon process creation logs?',
-        hint1: 'Use Sysmon EventCode 1.',
-        hint2: 'Count by Image.',
-        spl: 'index=botsv3 earliest=0 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 | top limit=10 Image',
+        hint1: 'Use Sysmon EventCode 1 (process creation). The sourcetype is XmlWinEventLog:Microsoft-Windows-Sysmon/Operational.',
+        hint2: 'Count by Image to see which executables ran the most.',
+        spl: 'index=botsv3 earliest=0 sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 | top limit=10 Image',
         answer: 'Use the most common Image values from your own results.',
-        explanation: 'This is a beginner-friendly way to learn what normal endpoint activity looks like.'
+        explanation: 'Sysmon EventCode 1 logs every new process creation with full path, parent, and command line. This is a beginner-friendly way to see what normal endpoint activity looks like.'
       },
       {
         num: 10,
         skill: 'PowerShell host review',
         scenario: 'You want to find which endpoints show PowerShell activity.',
         question: 'Which hosts show the most PowerShell-related process activity?',
-        hint1: 'Stay in Sysmon process creation logs.',
-        hint2: 'Search for the word powershell and count by host.',
-        spl: 'index=botsv3 earliest=0 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 powershell | stats count by host | sort 0 - count',
+        hint1: 'Stay in Sysmon process creation logs (EventCode=1).',
+        hint2: 'Filter where the Image field contains powershell, then count by host.',
+        spl: 'index=botsv3 earliest=0 sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 Image="*powershell*" | stats count by host | sort 0 - count',
         answer: 'Use the hosts at the top of your own results.',
-        explanation: 'This is a simple first step for reviewing scripting activity.'
+        explanation: 'Filtering on Image="*powershell*" is more precise than a bare keyword search. It targets only events where PowerShell is the actual process image.'
       },
       {
         num: 11,
         skill: 'Parent-child process review',
         scenario: 'You found PowerShell activity and want to see what launched it.',
         question: 'What parent processes launched PowerShell activity?',
-        hint1: 'Reuse the PowerShell Sysmon search.',
+        hint1: 'Reuse the PowerShell Sysmon search with EventCode=1 and Image="*powershell*".',
         hint2: 'Display Image, ParentImage, and CommandLine in a table.',
-        spl: 'index=botsv3 earliest=0 sourcetype="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode=1 powershell | table _time host Image ParentImage CommandLine | sort 0 _time',
+        spl: 'index=botsv3 earliest=0 sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 Image="*powershell*" | table _time host Image ParentImage CommandLine | sort 0 _time',
         answer: 'Use the ParentImage values from the events you review.',
-        explanation: 'This introduces process ancestry without making the search complicated.'
+        explanation: 'This introduces process ancestry without making the search complicated. The ParentImage field shows which program launched PowerShell.'
       },
       {
         num: 12,
         skill: 'CPU activity',
         scenario: 'You want to learn which processes appear most often in process performance data.',
         question: 'Which process names appear most often in Perfmon process data?',
-        hint1: 'Use perfmonmk:process.',
-        hint2: 'Count by process.',
-        spl: 'index=botsv3 earliest=0 sourcetype="perfmonmk:process" process=* | top limit=10 process',
+        hint1: 'Use the PerfmonMk:Process sourcetype (capital P, Mk, colon — exact casing from BOTSv3).',
+        hint2: 'Count by the process field.',
+        spl: 'index=botsv3 earliest=0 sourcetype="PerfmonMk:Process" | top limit=10 process',
         answer: 'Use the top process names from your own results.',
-        explanation: 'This gives beginners another view of endpoint activity beyond Sysmon.'
+        explanation: 'PerfmonMk:Process is the Windows Performance Monitor data in BOTSv3. The process field holds the process name.'
       },
       {
         num: 13,
         skill: 'High CPU review',
         scenario: 'You want to find obvious high-usage process events.',
         question: 'Which process events show 100 percent CPU usage?',
-        hint1: 'Stay on perfmonmk:process.',
-        hint2: 'Filter on process_cpu_used_percent=100.',
-        spl: 'index=botsv3 earliest=0 sourcetype="perfmonmk:process" process_cpu_used_percent=100 | table _time host process process_cpu_used_percent | sort 0 _time',
+        hint1: 'Stay on PerfmonMk:Process.',
+        hint2: 'Filter where process_cpu_used_percent=100.',
+        spl: 'index=botsv3 earliest=0 sourcetype="PerfmonMk:Process" process_cpu_used_percent=100 | table _time host process process_cpu_used_percent | sort 0 + _time',
         answer: 'Use the process names and hosts from your own results.',
-        explanation: 'This is a very simple performance-based hunting query.'
+        explanation: 'This is a very simple performance-based hunting query. Sorting by +_time (ascending) shows you the earliest 100% CPU event first.'
       },
       {
         num: 14,
@@ -725,7 +725,7 @@
         scenario: 'You want to explore who appears most often as an email sender in SMTP traffic.',
         question: 'Which senders appear most often in SMTP events?',
         hint1: 'Use stream:smtp.',
-        hint2: 'Count by sender.',
+        hint2: 'Count by the sender field.',
         spl: 'index=botsv3 earliest=0 sourcetype="stream:smtp" sender=* | top limit=10 sender',
         answer: 'Use the top senders from your own results.',
         explanation: 'This gives beginners an easy way to start exploring email-related data.'
@@ -744,21 +744,171 @@
     ];
 
     const ctfData = [
-      { num: 1, skill: 'AWS usernames', scenario: 'You want a very easy first win inside BOTSv3 and need to identify which IAM users touched AWS services.', question: 'Find the IAM usernames that accessed AWS services in the Frothly environment.', hint1: 'Use the AWS CloudTrail sourcetype.', hint2: 'Look for the username field and list unique values.', spl: 'index=botsv3 sourcetype="aws:cloudtrail" user_type="IAMUser" | stats values(userIdentity.userName) as iam_users', answer: 'Expected BOTSv3 answer set: bstoll, btun, splunk_access, web_admin.', explanation: 'This is a beginner-safe BOTSv3 question because the answer is well-known in public walkthroughs and also teaches field discovery in CloudTrail logs.' },
-      { num: 2, skill: 'No-MFA field', scenario: 'A SOC analyst wants to detect AWS API activity where MFA was not used.', question: 'What field should you watch to detect AWS activity without MFA?', hint1: 'Search CloudTrail and inspect events where MFA is mentioned.', hint2: 'You need the full field path, not just the word MFA.', spl: 'index=botsv3 sourcetype="aws:cloudtrail" "mfaAuthenticated"', answer: 'Expected BOTSv3 answer: userIdentity.sessionContext.attributes.mfaAuthenticated.', explanation: 'This is a real BOTSv3 concept from public write-ups and is simple enough for beginners because it focuses on field recognition, not deep investigation.' },
-      { num: 3, skill: 'Public bucket event', scenario: 'An employee accidentally makes an S3 bucket public and you need to identify the exact event that enabled it.', question: 'What is the event ID of the API call that made the S3 bucket public?', hint1: 'Think about bucket ACL changes.', hint2: 'Search for PutBucketAcl and public access indicators.', spl: 'index=botsv3 sourcetype="aws:cloudtrail" eventName="PutBucketAcl" AllUsers | table _time eventID requestParameters.bucketName', answer: 'Expected BOTSv3 answer: ab45689d-69cd-41e7-8705-5350402cf7ac.', explanation: 'This is a good beginner challenge because it teaches how one API action can reveal a security mistake in cloud logs.' },
-      { num: 4, skill: 'Public bucket name', scenario: 'Now that you found the public bucket event, you need to identify which bucket was exposed.', question: 'What bucket name was made publicly accessible?', hint1: 'Reuse the previous search.', hint2: 'Look at the bucketName field.', spl: 'index=botsv3 sourcetype="aws:cloudtrail" eventName="PutBucketAcl" AllUsers | table requestParameters.bucketName eventID', answer: 'Expected BOTSv3 answer: frothlywebcode.', explanation: 'This teaches the beginner habit of reusing a working search and pulling the next answer from the same evidence instead of starting over.' },
-      { num: 5, skill: 'Uploaded text file', scenario: 'While the bucket was public, someone uploaded a text file into it.', question: 'What is the name of the uploaded text file?', hint1: 'Search AWS S3 access logs in the time window after the bucket became public.', hint2: 'Look for PUT object activity and a .txt file.', spl: 'index=botsv3 sourcetype="aws:s3:accesslogs" frothlywebcode operation="REST.PUT.OBJECT" *.txt | table _time key operation', answer: 'Expected BOTSv3 answer: OPEN_BUCKET_PLEASE_FIX.txt.', explanation: 'This is still beginner-friendly because it shows how to pivot from one cloud event to related storage activity.' },
-      { num: 6, skill: 'Uploaded archive size', scenario: 'A compressed file was also uploaded while the bucket was public, and you want to calculate its size in MB.', question: 'What is the size in MB of the .tar.gz file uploaded to the public bucket?', hint1: 'Search the S3 access logs for a PUT of a .tar.gz file.', hint2: 'Use eval to convert bytes to megabytes and round the result.', spl: 'index=botsv3 sourcetype="aws:s3:accesslogs" frothlywebcode operation="REST.PUT.OBJECT" *.tar.gz | eval size_mb=round(object_size/1024/1024,2) | table key size_mb', answer: 'Expected BOTSv3 answer: 2.93.', explanation: 'This challenge is excellent for beginners because it combines hunting with a tiny useful calculation inside SPL.' },
-      { num: 7, skill: 'First miner process', scenario: 'An endpoint shows signs of cryptomining and you want to know which process first hit 100 percent CPU during the malicious activity.', question: 'What is the first suspicious process that reached 100 percent CPU from the mining activity?', hint1: 'Use Perfmon process data.', hint2: 'Search for process_cpu_used_percent=100 and sort by time.', spl: 'index=botsv3 sourcetype="PerfmonMk:Process" process_cpu_used_percent=100 | sort + _time | table _time host process process_cpu_used_percent', answer: 'Expected BOTSv3 beginner answer: chrome#5.', explanation: 'Some public write-ups note that an older Edge event appears earlier in the day, but the mining-related answer consistently used in walkthroughs is chrome#5, making this the beginner-friendly interpretation.' },
-      { num: 8, skill: 'Mining host', scenario: 'You now want to identify which endpoint actually mined Monero.', question: 'Which short hostname is the endpoint that actually mined Monero?', hint1: 'Search for Coinhive-related activity.', hint2: 'Look at which endpoint shows the strongest pattern.', spl: 'index=botsv3 coinhive | stats count by host | sort - count', answer: 'Expected BOTSv3 answer: BSTOLL-L.', explanation: 'This makes a good beginner hunting challenge because it teaches that one suspicious keyword can quickly narrow down a compromised host.' },
-      { num: 9, skill: 'Mining destinations', scenario: 'You want to know how many different cryptocurrency mining destinations were contacted.', question: 'How many mining destinations were visited by Frothly endpoints?', hint1: 'Stay focused on Coinhive-related DNS or flow data.', hint2: 'Count distinct destinations, not just total events.', spl: 'index=botsv3 coinhive | stats dc(query) as distinct_destinations', answer: 'Expected BOTSv3 answer: 6.', explanation: 'This teaches the difference between event count and distinct values, which is very important in Splunk analysis.' },
-      { num: 10, skill: 'First SEP signature', scenario: 'Security tooling saw the coin miner, and you need the first observed signature ID.', question: 'What is the first seen SEP signature ID for the coin miner threat?', hint1: 'Search the SEPM host for signature fields.', hint2: 'Use an event-order function like first() after sorting or via stats.', spl: 'index=botsv3 host="SEPM" CIDS_Signature_ID=* | stats first(CIDS_Signature_ID) as first_signature', answer: 'Expected BOTSv3 answer: 30358.', explanation: 'This introduces beginners to event-order thinking without being too complex.' },
-      { num: 11, skill: 'Leaked access key', scenario: 'An AWS key was leaked to an external repository and you need to identify the secret key value used in the compromise.', question: 'What is the leaked AWS secret access key?', hint1: 'Follow the support-case and GitHub-repository storyline in the write-ups.', hint2: 'This is a known BOTSv3 answer from public walkthroughs.', spl: 'Use the leaked access key storyline from the AWS questions, then inspect the external repository evidence referenced by the case.', answer: 'Expected BOTSv3 answer: Bx8/gTsYC98T0oWiFhpmdROqhELPtXJSR9vFPNGk.', explanation: 'This is not a simple counting query, but it is a valid simplified beginner challenge because it teaches evidence pivoting in a cloud compromise story.' },
-      { num: 12, skill: 'DescribeAccount user-agent', scenario: 'The attacker used the leaked key to describe an account, and you need the application that made the request.', question: 'What full user-agent string was used for the DescribeAccountAttributes request?', hint1: 'Filter AWS CloudTrail by the leaked access key and the event name.', hint2: 'Then read the user agent field.', spl: 'index=botsv3 sourcetype="aws:cloudtrail" userIdentity.accessKeyId="AKIAJOGCDXJ5NW5PXUPA" eventName="DescribeAccountAttributes" | table _time userAgent', answer: 'Expected BOTSv3 answer: ElasticWolf/5.1.6.', explanation: 'This teaches that even small fields such as user agent can reveal attacker tooling.' },
-      { num: 13, skill: 'New compromised user', scenario: 'After an endpoint compromise, a new user account was created on a Windows system.', question: 'What is the name of the created user?', hint1: 'Windows new-user creation is commonly EventCode 4720.', hint2: 'Search for EventCode 4720 in the botsv3 index.', spl: 'index=botsv3 EventCode=4720 | table _time host TargetUserName SubjectUserName', answer: 'Expected BOTSv3 answer: svcvnc.', explanation: 'This is a perfect beginner Windows event-ID challenge because the event code is well-known and the answer is short and clear.' },
-      { num: 14, skill: 'Leet port process', scenario: 'A suspicious process is listening on a “leet” port, and you need the process ID.', question: 'What is the process ID of the process listening on port 1337?', hint1: 'Leet usually means 1337.', hint2: 'Search for port 1337 and inspect the process information.', spl: 'index=botsv3 (Port=1337 OR dest_port=1337 OR columns.port=1337) | table _time host process_id process Port dest_port columns.port', answer: 'Expected BOTSv3 answer: 14356.', explanation: 'This challenge helps beginners translate a clue in plain English into a concrete searchable value.' },
-      { num: 15, skill: 'Mail-server search string', scenario: 'An external IP used Frothly’s mail environment to perform a suspicious search, and you need the exact query string.', question: 'What was the search string used from the external IP against the mail server data?', hint1: 'Look in the Office 365 management logs.', hint2: 'Filter on Exchange workload and query-related data.', spl: 'index=botsv3 sourcetype="ms:o365:management" Workload="Exchange" query=* | table _time ClientIP query', answer: 'Expected BOTSv3 answer: cromdale OR beer OR financial OR secret.', explanation: 'This is a great Level 1 analyst exercise because it feels like a real investigation into suspicious mailbox searching by an attacker.' }
+      {
+        num: 1,
+        skill: 'AWS usernames',
+        scenario: 'You want a very easy first win inside BOTSv3 and need to identify which IAM users touched AWS services.',
+        question: 'Find the IAM usernames that accessed AWS services in the Frothly environment.',
+        hint1: 'Use the aws:cloudtrail sourcetype.',
+        hint2: 'The user identity type for IAM users is stored in userIdentity.type. The actual username is in userIdentity.userName.',
+        spl: 'index=botsv3 sourcetype="aws:cloudtrail" userIdentity.type="IAMUser" | stats values(userIdentity.userName) as iam_users',
+        answer: 'Expected BOTSv3 answer set: bstoll, btun, splunk_access, web_admin.',
+        explanation: 'The correct field is userIdentity.type (not user_type, which does not exist). This teaches field discovery in CloudTrail logs.'
+      },
+      {
+        num: 2,
+        skill: 'No-MFA field',
+        scenario: 'A SOC analyst wants to detect AWS API activity where MFA was not used.',
+        question: 'What field should you watch to detect AWS activity without MFA?',
+        hint1: 'Search CloudTrail and look for events where mfaAuthenticated appears in the raw event.',
+        hint2: 'Expand the parsed fields panel on a CloudTrail event to find the full field path.',
+        spl: 'index=botsv3 sourcetype="aws:cloudtrail" "mfaAuthenticated" | table _time userIdentity.userName userIdentity.sessionContext.attributes.mfaAuthenticated',
+        answer: 'Expected BOTSv3 answer: userIdentity.sessionContext.attributes.mfaAuthenticated.',
+        explanation: 'This is a real BOTSv3 concept from public write-ups. The field is nested inside the sessionContext object of the userIdentity structure.'
+      },
+      {
+        num: 3,
+        skill: 'Public bucket event',
+        scenario: 'An employee accidentally makes an S3 bucket public and you need to identify the exact event that enabled it.',
+        question: 'What is the event ID of the API call that made the S3 bucket public?',
+        hint1: 'Bucket ACL changes use the PutBucketAcl event name. Look at the user bstoll who is confirmed to have made this change.',
+        hint2: 'Filter on eventName=PutBucketAcl for user bstoll and read the eventID field.',
+        spl: 'index=botsv3 sourcetype="aws:cloudtrail" userIdentity.userName="bstoll" eventName="PutBucketAcl" | table _time eventID requestParameters.bucketName userIdentity.userName',
+        answer: 'Expected BOTSv3 answer: ab45689d-69cd-41e7-8705-5350402cf7ac.',
+        explanation: 'Filtering by the known actor (bstoll) and the specific API call (PutBucketAcl) is the reliable path to this event. Every public BOTSv3 walkthrough confirms this eventID.'
+      },
+      {
+        num: 4,
+        skill: 'Public bucket name',
+        scenario: 'Now that you found the public bucket event, you need to identify which bucket was exposed.',
+        question: 'What bucket name was made publicly accessible?',
+        hint1: 'Reuse the previous search filtering on bstoll and PutBucketAcl.',
+        hint2: 'Look at the requestParameters.bucketName field in the results.',
+        spl: 'index=botsv3 sourcetype="aws:cloudtrail" userIdentity.userName="bstoll" eventName="PutBucketAcl" | table requestParameters.bucketName eventID',
+        answer: 'Expected BOTSv3 answer: frothlywebcode.',
+        explanation: 'This teaches the beginner habit of reusing a working search and pulling the next answer from the same evidence instead of starting over.'
+      },
+      {
+        num: 5,
+        skill: 'Uploaded text file',
+        scenario: 'While the bucket was public, someone uploaded a text file into it.',
+        question: 'What is the name of the uploaded text file?',
+        hint1: 'Search the aws:s3:accesslogs sourcetype. The bucket name is frothlywebcode.',
+        hint2: 'Look for REST.PUT.OBJECT operations on .txt files. The file name is in the key field.',
+        spl: 'index=botsv3 sourcetype="aws:s3:accesslogs" frothlywebcode operation="REST.PUT.OBJECT" key=*.txt | table _time key operation',
+        answer: 'Expected BOTSv3 answer: OPEN_BUCKET_PLEASE_FIX.txt.',
+        explanation: 'This shows how to pivot from a CloudTrail ACL event to the S3 access logs to find what was actually uploaded while the bucket was open.'
+      },
+      {
+        num: 6,
+        skill: 'Uploaded archive size',
+        scenario: 'A compressed file was also uploaded while the bucket was public, and you want to calculate its size in MB.',
+        question: 'What is the size in MB of the .tar.gz file uploaded to the public bucket?',
+        hint1: 'Search aws:s3:accesslogs for a REST.PUT.OBJECT of a .tar.gz file in the frothlywebcode bucket.',
+        hint2: 'Use eval to convert bytes to MB: round(object_size/1024/1024, 2). The field object_size holds the byte count.',
+        spl: 'index=botsv3 sourcetype="aws:s3:accesslogs" frothlywebcode operation="REST.PUT.OBJECT" key=*.tar.gz | eval size_mb=round(object_size/1024/1024,2) | table key size_mb',
+        answer: 'Expected BOTSv3 answer: 2.93.',
+        explanation: 'This challenge combines hunting with a calculation inside SPL. The object_size field in S3 access logs is in bytes; dividing by 1024 twice converts to megabytes.'
+      },
+      {
+        num: 7,
+        skill: 'First miner process',
+        scenario: 'An endpoint shows signs of cryptomining and you want to know which process first reached 100 percent CPU.',
+        question: 'What is the first process that reached 100 percent CPU from the coin mining activity?',
+        hint1: 'Use the PerfmonMk:Process sourcetype (exact casing). Look for process_cpu_used_percent=100.',
+        hint2: 'Sort by _time ascending (+ _time) to get the chronologically first event.',
+        spl: 'index=botsv3 sourcetype="PerfmonMk:Process" process_cpu_used_percent=100 | sort + _time | head 1 | table _time host process process_cpu_used_percent',
+        answer: 'Expected BOTSv3 answer: MicrosoftEdgeCP#2.',
+        explanation: 'Sorting ascending by _time and taking head 1 guarantees you get the earliest event. The confirmed first process in BOTSv3 is MicrosoftEdgeCP#2, not chrome#5.'
+      },
+      {
+        num: 8,
+        skill: 'Mining host',
+        scenario: 'You now want to identify which endpoint actually mined Monero.',
+        question: 'Which short hostname is the endpoint that actually mined Monero?',
+        hint1: 'Search for Coinhive-related activity across all sourcetypes.',
+        hint2: 'Count by host and sort descending to see which endpoint has the most Coinhive evidence.',
+        spl: 'index=botsv3 earliest=0 coinhive | stats count by host | sort - count',
+        answer: 'Expected BOTSv3 answer: BSTOLL-L.',
+        explanation: 'A single suspicious keyword (coinhive) quickly narrows down the compromised host. This teaches that keyword pivoting is often faster than starting with a specific sourcetype.'
+      },
+      {
+        num: 9,
+        skill: 'Mining destinations',
+        scenario: 'You want to know how many different cryptocurrency mining destinations were contacted.',
+        question: 'How many distinct mining destinations were visited by Frothly endpoints?',
+        hint1: 'Scope your search to stream:dns events that contain the word coinhive.',
+        hint2: 'Use dc() to count distinct values of the query field, which holds the DNS name being looked up.',
+        spl: 'index=botsv3 earliest=0 sourcetype="stream:dns" coinhive | stats dc(query) as distinct_destinations',
+        answer: 'Expected BOTSv3 answer: 6.',
+        explanation: 'Adding sourcetype="stream:dns" ensures the query field (DNS name) exists in the events. dc() counts distinct values, not total events — an important Splunk concept.'
+      },
+      {
+        num: 10,
+        skill: 'First SEP signature',
+        scenario: 'Security tooling saw the coin miner, and you need the first observed signature ID.',
+        question: 'What is the first seen SEP signature ID for the coin miner threat?',
+        hint1: 'Search for the SEPM host across all sourcetypes. Look for a CIDS_Signature_ID field.',
+        hint2: 'Sort ascending by _time to get the earliest event, then use head 1 and table to read the first signature.',
+        spl: 'index=botsv3 earliest=0 host="SEPM" CIDS_Signature_ID=* | sort + _time | head 1 | table _time host CIDS_Signature_ID',
+        answer: 'Expected BOTSv3 answer: 30358.',
+        explanation: 'Using sort + _time then head 1 is the correct chronological approach. The stats first() function does NOT guarantee time order in Splunk — always sort first.'
+      },
+      {
+        num: 11,
+        skill: 'Leaked access key',
+        scenario: 'An AWS key was leaked to an external repository and you need to identify the secret key value used in the compromise.',
+        question: 'What is the leaked AWS secret access key?',
+        hint1: 'Follow the support-case storyline and search for the access key ID AKIAJOGCDXJ5NW5PXUPA in the CloudTrail logs to confirm it was used.',
+        hint2: 'The secret access key itself was found in the external GitHub repository. This is a known BOTSv3 answer from public walkthroughs.',
+        spl: 'index=botsv3 sourcetype="aws:cloudtrail" userIdentity.accessKeyId="AKIAJOGCDXJ5NW5PXUPA" | stats count by userIdentity.userName eventName | sort - count',
+        answer: 'Expected BOTSv3 answer: Bx8/gTsYC98T0oWiFhpmdROqhELPtXJSR9vFPNGk.',
+        explanation: 'The SPL above confirms the leaked key was actively used in AWS. The actual secret key string comes from the leaked GitHub repo, which is part of the BOTSv3 story chain.'
+      },
+      {
+        num: 12,
+        skill: 'DescribeAccountAttributes user-agent',
+        scenario: 'The attacker used the leaked key to describe an account, and you need the application that made the request.',
+        question: 'What full user-agent string was used for the DescribeAccountAttributes request?',
+        hint1: 'Filter CloudTrail by the leaked access key ID AKIAJOGCDXJ5NW5PXUPA and the eventName DescribeAccountAttributes.',
+        hint2: 'Read the userAgent field in the results.',
+        spl: 'index=botsv3 sourcetype="aws:cloudtrail" userIdentity.accessKeyId="AKIAJOGCDXJ5NW5PXUPA" eventName="DescribeAccountAttributes" | table _time userAgent eventName',
+        answer: 'Expected BOTSv3 answer: ElasticWolf/5.1.6.',
+        explanation: 'The user-agent field in CloudTrail reveals which tool or application made the API call. ElasticWolf is an older AWS management GUI, showing the attacker used a specific client.'
+      },
+      {
+        num: 13,
+        skill: 'New compromised user',
+        scenario: 'After an endpoint compromise, a new user account was created on a Windows system.',
+        question: 'What is the name of the created user?',
+        hint1: 'Windows new-user creation events use EventCode 4720 in the Security event log.',
+        hint2: 'Search for EventCode=4720 and display the TargetUserName and SubjectUserName fields.',
+        spl: 'index=botsv3 earliest=0 sourcetype="WinEventLog:Security" EventCode=4720 | table _time host TargetUserName SubjectUserName',
+        answer: 'Expected BOTSv3 answer: svcvnc.',
+        explanation: 'EventCode 4720 fires whenever a new local user account is created on Windows. TargetUserName is the new account name. The sourcetype in BOTSv3 is WinEventLog:Security (not wineventlog).'
+      },
+      {
+        num: 14,
+        skill: 'Leet port process',
+        scenario: 'A suspicious process is listening on a leet port, and you need the process ID.',
+        question: 'What is the process ID of the process listening on port 1337?',
+        hint1: 'Leet means 1337. Search the Script:ListeningPorts sourcetype which uses osquery to enumerate listening ports.',
+        hint2: 'In the osquery ListeningPorts data, the port value is in columns.port and the process ID is in columns.pid.',
+        spl: 'index=botsv3 earliest=0 sourcetype="Script:ListeningPorts" columns.port=1337 | table _time host columns.pid columns.port columns.address',
+        answer: 'Expected BOTSv3 answer: 14356.',
+        explanation: 'Script:ListeningPorts is a Splunk scripted input that runs osquery on Windows endpoints. The columns.port and columns.pid fields are the osquery result columns.'
+      },
+      {
+        num: 15,
+        skill: 'Mail-server search string',
+        scenario: 'An external IP used the Frothly mail environment to perform a suspicious mailbox search.',
+        question: 'What was the search string used from the external IP against the mail server data?',
+        hint1: 'Look in the ms:o365:management sourcetype. Filter on Workload="Exchange".',
+        hint2: 'Look for Operation values related to searching, then inspect the Parameters field for the query string.',
+        spl: 'index=botsv3 earliest=0 sourcetype="ms:o365:management" Workload="Exchange" Operation="SearchQueryInitiatedExchange" | table _time ClientIP Operation Parameters',
+        answer: 'Expected BOTSv3 answer: cromdale OR beer OR financial OR secret.',
+        explanation: 'The Operation field SearchQueryInitiatedExchange records mailbox searches. The Parameters field contains the actual query string entered by the user or attacker.'
+      }
     ];
 
     const App = () => {
