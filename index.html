@@ -925,8 +925,199 @@
         { title: '7. The Simulation Wing', icon: 'fas fa-biohazard' },
         { title: '8. Field Extractions', icon: 'fas fa-cut' },
         { title: '9. Advanced Alerts', icon: 'fas fa-bell' },
-        { title: '10. Dashboards & Vis', icon: 'fas fa-chart-pie' }
+        { title: '10. Dashboards & Vis', icon: 'fas fa-chart-pie' },
+        { title: "11. Mock Interview",icon: "fas fa-globe"},
       ];
+
+
+
+      const Chapter11YourWebProject = () => (
+  <div className="fade-in space-y-8">
+    <SectionHeader title="Your Web Project" icon="fas fa-globe" />
+
+    <p className="text-xl text-slate-300 leading-relaxed font-light">
+      This chapter is where you connect your web development experience to cybersecurity work.
+      If you have built a website before, that is a strong advantage because it shows you already
+      understand how apps are structured, how users interact with them, and where common risks can appear.
+    </p>
+
+    <InfoCard icon="fas fa-lightbulb" title="Why this matters" tone="blue">
+      Web apps are one of the most common attack surfaces in real environments. If you understand
+      pages, forms, authentication, APIs, and deployment basics, you will learn security concepts much faster.
+    </InfoCard>
+
+    <SubHeader title="What you can say in an interview" />
+    <div className="glass-panel p-6 rounded-2xl border border-slate-700">
+      <p className="text-slate-300 leading-relaxed">
+        “I have built a website before, so I understand the basics of front-end structure, user input,
+        and how web applications behave. That experience helps me think about security from the application
+        perspective, especially around authentication, input validation, and access control.”
+      </p>
+    </div>
+
+    <SubHeader title="Skills this gives you" />
+    <div className="grid md:grid-cols-2 gap-5">
+      <InfoCard icon="fas fa-code" title="Frontend awareness" tone="green">
+        You understand HTML, CSS, JavaScript, and how users interact with a site.
+      </InfoCard>
+      <InfoCard icon="fas fa-server" title="App flow awareness" tone="purple">
+        You know how data moves from the browser to the backend and back again.
+      </InfoCard>
+      <InfoCard icon="fas fa-shield-halved" title="Security mindset" tone="yellow">
+        You can better understand risks like weak passwords, bad input handling, and broken access control.
+      </InfoCard>
+      <InfoCard icon="fas fa-bug" title="Troubleshooting" tone="red">
+        You already have practice debugging errors, broken layouts, and unexpected behavior.
+      </InfoCard>
+    </div>
+
+    <SubHeader title="Good next step" />
+    <StepCard
+      step="11"
+      icon="fas fa-rocket"
+      title="Turn your web project into a portfolio story"
+    >
+      Add 2 to 3 sentences about what you built, what tools you used, what problem you solved, and what
+      you learned. That makes your experience sound relevant for both tech and security roles.
+    </StepCard>
+  </div>
+);
+
+      //Chapter 11 components
+      const Chapter11MockInterview = () => (
+
+        <div className="fade-in space-y-10">
+
+            <p className="text-xl text-slate-300 leading-relaxed font-light">
+              This chapter is where you connect your web development experience to cybersecurity work.
+              If you have built a website before, that is a strong advantage because it shows you already
+              understand how apps are structured, how users interact with them, and where common risks can appear.
+            </p>
+
+            <InfoCard icon="fas fa-lightbulb" title="Why this matters" tone="blue">
+              Web apps are one of the most common attack surfaces in real environments. If you understand
+              pages, forms, authentication, APIs, and deployment basics, you will learn security concepts much faster.
+            </InfoCard>
+
+            <SubHeader title="What you can say in an interview" />
+            <div className="glass-panel p-6 rounded-2xl border border-slate-700">
+              <p className="text-slate-300 leading-relaxed">
+                “I have built a website before, so I understand the basics of front-end structure, user input,
+                and how web applications behave. That experience helps me think about security from the application
+                perspective, especially around authentication, input validation, and access control.”
+              </p>
+            </div>
+
+            <SubHeader title="Skills this gives you" />
+            <div className="grid md:grid-cols-2 gap-5">
+              <InfoCard icon="fas fa-code" title="Frontend awareness" tone="green">
+                You understand HTML, CSS, JavaScript, and how users interact with a site.
+              </InfoCard>
+              <InfoCard icon="fas fa-server" title="App flow awareness" tone="purple">
+                You know how data moves from the browser to the backend and back again.
+              </InfoCard>
+              <InfoCard icon="fas fa-shield-halved" title="Security mindset" tone="yellow">
+                You can better understand risks like weak passwords, bad input handling, and broken access control.
+              </InfoCard>
+              <InfoCard icon="fas fa-bug" title="Troubleshooting" tone="red">
+                You already have practice debugging errors, broken layouts, and unexpected behavior.
+              </InfoCard>
+            </div>
+          <SectionHeader title="Mock Interview" icon="fas fa-comments" />
+
+          <p className="text-xl text-slate-300 leading-relaxed font-light">
+            This chapter gives you two common interview sections: one for SOC Level 1 technical questions and one for general HR questions.
+            Practice answering them out loud in short, clear sentences.
+          </p>
+
+          <SubHeader title="SOC Level 1 Questions" />
+          <div className="space-y-4">
+            <InfoCard icon="fas fa-shield-halved" title="1. What is a SOC, and what does a SOC Level 1 analyst do?" tone="blue">
+              A SOC is a Security Operations Center that monitors and responds to security events. A Level 1 analyst triages alerts, checks logs, and escalates suspicious activity.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-layer-group" title="2. What is the CIA triad?" tone="green">
+              The CIA triad stands for confidentiality, integrity, and availability. Confidentiality protects data from unauthorized access, integrity keeps data accurate, and availability ensures systems stay accessible.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-radar" title="3. What is the difference between a threat, vulnerability, and risk?" tone="purple">
+              A threat is something that can cause harm, a vulnerability is a weakness, and risk is the chance that the threat will exploit the weakness.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-database" title="4. What is a SIEM, and how is it used in a SOC?" tone="yellow">
+              A SIEM collects and correlates logs from different systems. In a SOC, analysts use it to detect suspicious patterns, investigate alerts, and support incident response.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-triangle-exclamation" title="5. What is a false positive, and how do you reduce them?" tone="red">
+              A false positive is when a tool flags normal activity as malicious. You reduce them by checking context, reviewing logs, and tuning detection rules when appropriate.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-envelope-open-text" title="6. What would you do if you received a phishing alert?" tone="blue">
+              I would review the sender, headers, links, attachments, and affected accounts. Then I would determine scope, document findings, and escalate if needed.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-user-secret" title="7. What logs would you check for suspicious login activity?" tone="green">
+              I would check authentication logs, VPN logs, firewall logs, endpoint logs, and SIEM results. I would look for unusual location, device, time, or repeated failed attempts.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-lock" title="8. What is the difference between IDS and IPS?" tone="purple">
+              IDS detects and alerts on suspicious traffic. IPS can detect and block suspicious traffic.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-bug" title="9. What is malware, and what are common types of malware?" tone="yellow">
+              Malware is malicious software designed to damage systems, steal data, or disrupt operations. Common types include viruses, worms, Trojans, ransomware, and spyware.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-fire" title="10. Why do you want to work as a SOC analyst, and how do you handle pressure?" tone="blue">
+              I want to work in a SOC because I enjoy finding patterns, solving problems, and helping protect systems. Under pressure, I stay calm, prioritize by severity, follow process, and communicate clearly.
+            </InfoCard>
+          </div>
+
+          <SubHeader title="Common HR Questions" />
+          <div className="space-y-4">
+            <InfoCard icon="fas fa-user" title="1. Tell me about yourself." tone="blue">
+              I am a cybersecurity-focused candidate with an interest in monitoring, incident response, and threat analysis. I like working with logs, alerts, and problem-solving.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-building" title="2. Why do you want to work here?" tone="green">
+              I am interested in this role because it matches my skills and career goals. I also want to learn in a structured environment and contribute to a serious security team.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-star" title="3. What are your strengths?" tone="purple">
+              My strengths are being detail-oriented, calm under pressure, and willing to learn quickly. I also communicate clearly and work well with a team.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-circle-question" title="4. What is your greatest weakness?" tone="yellow">
+              I sometimes spend too much time trying to understand a problem fully before moving on. I am improving by setting time limits and prioritizing better.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-briefcase" title="5. Why should we hire you?" tone="red">
+              You should hire me because I have a strong work ethic, a willingness to learn, and the discipline to contribute carefully and consistently.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-people-arrows" title="6. Tell me about a time you faced a challenge." tone="blue">
+              I would describe the situation, explain how I handled it, and share the result. The key is to show that I stayed organized and learned something useful.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-compress" title="7. How do you handle stress or pressure?" tone="green">
+              I handle stress by staying organized, breaking tasks into priorities, and focusing on the highest-risk items first. I also keep communication clear.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-right-from-bracket" title="8. Why are you leaving your current job?" tone="purple">
+              I am looking for a role that better fits my long-term direction in cybersecurity and gives me more room to grow.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-chart-line" title="9. Where do you see yourself in 3 to 5 years?" tone="yellow">
+              In 3 to 5 years, I want to be a stronger security professional with deeper incident response and analysis skills.
+            </InfoCard>
+
+            <InfoCard icon="fas fa-question" title="10. Do you have any questions for us?" tone="blue">
+              Yes. I would ask about the team’s main alert sources, how success is measured, and what training or growth opportunities are available.
+            </InfoCard>
+          </div>
+        </div>
+      );
+
 
       const changeTab = (index) => {
         setActiveTab(index);
@@ -1907,6 +2098,9 @@
                   />
                 </div>
               )}
+
+              {/* --- TAB 10: Interview Question and Answers --- */}
+              {activeTab === 10 && <Chapter11MockInterview />}
             </div>
           </div>
         </div>
