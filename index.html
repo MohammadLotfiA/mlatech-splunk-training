@@ -891,7 +891,7 @@
             "Use the WinHostMon sourcetype (capital W, H, M — this is the exact casing in BOTSv3).",
           hint2:
             "The OS details live in the OS field. Use dedup to get one row per host.",
-          spl: 'index=botsv3 earliest=0 sourcetype="WinHostMon" | dedup host | table host, OS',
+          spl: 'index=botsv3 earliest=0 sourcetype="WinHostMon" | dedup host, OS | table host, OS',
           answer: "Use the host and OS values from your own table.",
           explanation:
             "WinHostMon is a scripted input that collects Windows host inventory. The sourcetype casing must match exactly: WinHostMon.",
@@ -905,7 +905,7 @@
             "Which operating system versions appear, and how many hosts use each one?",
           hint1: "Stay on the WinHostMon sourcetype.",
           hint2: "Count by the OS field.",
-          spl: 'index=botsv3 earliest=0 sourcetype="WinHostMon" | dedup host OS | stats count by OS | sort 0 - count',
+          spl: 'index=botsv3 earliest=0 sourcetype="WinHostMon" | dedup host, OS | stats count by OS | sort 0 - count',
           answer: "Use the OS values and counts from your own results.",
           explanation:
             "This helps beginners turn raw inventory into a quick summary. The dedup ensures each host-OS pair is only counted once.",
@@ -951,97 +951,26 @@
         },
         {
           num: 9,
-          skill: "Process discovery",
-          scenario:
-            "You want to explore process activity on Windows endpoints without doing advanced hunting yet.",
-          question:
-            "Which process images appear most often in Sysmon process creation logs?",
-          hint1:
-            "Use Sysmon EventCode 1 (process creation). The sourcetype is XmlWinEventLog:Microsoft-Windows-Sysmon/Operational.",
-          hint2: "Count by Image to see which executables ran the most.",
-          spl: 'index=botsv3 earliest=0 sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 | top limit=10 Image',
-          answer: "Use the most common Image values from your own results.",
-          explanation:
-            "Sysmon EventCode 1 logs every new process creation with full path, parent, and command line. This is a beginner-friendly way to see what normal endpoint activity looks like.",
-        },
-        {
-          num: 10,
-          skill: "PowerShell host review",
-          scenario:
-            "You want to find which endpoints show PowerShell activity.",
-          question:
-            "Which hosts show the most PowerShell-related process activity?",
-          hint1: "Stay in Sysmon process creation logs (EventCode=1).",
-          hint2:
-            "Filter where the Image field contains powershell, then count by host.",
-          spl: 'index=botsv3 earliest=0 sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 Image="*powershell*" | stats count by host | sort 0 - count',
-          answer: "Use the hosts at the top of your own results.",
-          explanation:
-            'Filtering on Image="*powershell*" is more precise than a bare keyword search. It targets only events where PowerShell is the actual process image.',
-        },
-        {
-          num: 11,
-          skill: "Parent-child process review",
-          scenario:
-            "You found PowerShell activity and want to see what launched it.",
-          question: "What parent processes launched PowerShell activity?",
-          hint1:
-            'Reuse the PowerShell Sysmon search with EventCode=1 and Image="*powershell*".',
-          hint2: "Display Image, ParentImage, and CommandLine in a table.",
-          spl: 'index=botsv3 earliest=0 sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 Image="*powershell*" | table _time host Image ParentImage CommandLine | sort 0 _time',
-          answer: "Use the ParentImage values from the events you review.",
-          explanation:
-            "This introduces process ancestry without making the search complicated. The ParentImage field shows which program launched PowerShell.",
-        },
-        {
-          num: 12,
-          skill: "CPU activity",
-          scenario:
-            "You want to learn which processes appear most often in process performance data.",
-          question:
-            "Which process names appear most often in Perfmon process data?",
-          hint1:
-            "Use the PerfmonMk:Process sourcetype (capital P, Mk, colon — exact casing from BOTSv3).",
-          hint2: "Count by the process field.",
-          spl: 'index=botsv3 earliest=0 sourcetype="PerfmonMk:Process" | top limit=10 process',
-          answer: "Use the top process names from your own results.",
-          explanation:
-            "PerfmonMk:Process is the Windows Performance Monitor data in BOTSv3. The process field holds the process name.",
-        },
-        {
-          num: 13,
-          skill: "High CPU review",
-          scenario: "You want to find obvious high-usage process events.",
-          question: "Which process events show 100 percent CPU usage?",
-          hint1: "Stay on PerfmonMk:Process.",
-          hint2: "Filter where process_cpu_used_percent=100.",
-          spl: 'index=botsv3 earliest=0 sourcetype="PerfmonMk:Process" process_cpu_used_percent=100 | table _time host process process_cpu_used_percent | sort 0 + _time',
-          answer: "Use the process names and hosts from your own results.",
-          explanation:
-            "This is a very simple performance-based hunting query. Sorting by +_time (ascending) shows you the earliest 100% CPU event first.",
-        },
-        {
-          num: 14,
           skill: "Email visibility",
           scenario:
             "You want to explore who appears most often as an email sender in SMTP traffic.",
           question: "Which senders appear most often in SMTP events?",
           hint1: "Use stream:smtp.",
           hint2: "Count by the sender field.",
-          spl: 'index=botsv3 earliest=0 sourcetype="stream:smtp" sender=* | top limit=10 sender',
+          spl: 'index=botsv3 earliest=0 sourcetype="stream:smtp" | top limit=10 sender',
           answer: "Use the top senders from your own results.",
           explanation:
             "This gives beginners an easy way to start exploring email-related data.",
         },
         {
-          num: 15,
+          num: 10,
           skill: "Cloud activity discovery",
           scenario:
             "You want a simple first look at AWS activity in the dataset.",
           question: "Which AWS CloudTrail event names appear most often?",
           hint1: "Use aws:cloudtrail.",
           hint2: "Count by eventName.",
-          spl: 'index=botsv3 earliest=0 sourcetype="aws:cloudtrail" eventName=* | top limit=10 eventName',
+          spl: 'index=botsv3 earliest=0 sourcetype="aws:cloudtrail" | top limit=10 eventName',
           answer: "Use the top CloudTrail event names from your own results.",
           explanation:
             "This gives beginners a very safe starting point for cloud log exploration.",
@@ -2458,27 +2387,30 @@
                       <SplCommandCard
                         num="1"
                         title="Raw search"
-                        purpose="Start with the right data"
+                        purpose="Start with the right data. Warning, do not use this if your system is not strong, go to command 2 instead."
                         command="index=botsv3"
                         explanation="This tells Splunk where to search. Starting with the index keeps your search focused and faster than searching everything."
                         beginnerTip="Always start broad, then narrow down. If you start too specific, you might miss the data completely."
                       />
+
                       <SplCommandCard
                         num="2"
-                        title="table"
-                        purpose="Show only the columns you care about"
-                        command="index=botsv3 | table _time host sourcetype"
-                        explanation="This turns messy results into a clean grid with only the fields you name."
-                        beginnerTip="If a field name is wrong, the column may appear blank. That is your clue to inspect the event and find the real field name."
+                        title="head"
+                        purpose="Show only the first few events"
+                        command="index=botsv3 | head 10"
+                        explanation="This limits the output to the first 10 events so you can quickly inspect your data without loading everything."
+                        beginnerTip="Use head when you're exploring data and only need a small sample."
                       />
+
                       <SplCommandCard
                         num="3"
-                        title="fields"
-                        purpose="Keep or drop fields"
-                        command="index=botsv3 | fields _time host sourcetype source"
-                        explanation="This keeps only the listed fields while still leaving results as events, unlike table which fully formats the output."
-                        beginnerTip="Use fields when you still want event-style results but want less clutter."
+                        title="stats count by"
+                        purpose="Count how many times a value appears"
+                        command="index=botsv3 | stats count by sourcetype"
+                        explanation="This is one of the most useful beginner commands in Splunk. It counts events and groups them by a field."
+                        beginnerTip="When in doubt, count by something. It is one of the fastest ways to understand your data."
                       />
+
                       <SplCommandCard
                         num="4"
                         title="sort"
@@ -2487,38 +2419,43 @@
                         explanation="This sorts the results descending because of the minus sign before count."
                         beginnerTip="If you forget the minus sign, the smallest values appear first instead of the biggest."
                       />
+
                       <SplCommandCard
                         num="5"
-                        title="head"
-                        purpose="Show only the first few rows"
-                        command="index=botsv3 | stats count by host | sort - count | head 10"
-                        explanation="This limits the results to the top 10 rows, which is useful for dashboards and quick checks."
-                        beginnerTip="Use head when the output is too long and you only need the top few results."
-                      />
-                      <SplCommandCard
-                        num="6"
-                        title="stats count by"
-                        purpose="Count how many times a value appears"
-                        command="index=botsv3 | stats count by sourcetype"
-                        explanation="This is one of the most useful beginner commands in Splunk. It counts events and groups them by a field."
-                        beginnerTip="When in doubt, count by something. It is one of the fastest ways to understand your data."
-                      />
-                      <SplCommandCard
-                        num="7"
                         title="top"
                         purpose="Find the most common values quickly"
                         command="index=botsv3 | top host"
                         explanation="Top automatically counts and ranks the most common values in a field."
                         beginnerTip="Use top for a quick answer. Use stats count by when you want more control over the output."
                       />
+
                       <SplCommandCard
-                        num="8"
+                        num="6"
                         title="rare"
                         purpose="Find unusual or low-frequency values"
                         command="index=botsv3 | rare host"
                         explanation="Rare shows uncommon values. This is useful in threat hunting because rare activity often deserves a second look."
                         beginnerTip="Rare does not always mean malicious. It means unusual. You still need analyst judgment."
                       />
+
+                      <SplCommandCard
+                        num="7"
+                        title="where"
+                        purpose="Filter results using conditions"
+                        command="index=botsv3 | stats count by host | where count > 1000"
+                        explanation="Where filters results after the count has already been calculated."
+                        beginnerTip="Use search to filter raw events. Use where to filter calculated results."
+                      />
+
+                      <SplCommandCard
+                        num="8"
+                        title="table"
+                        purpose="Show only the columns you care about"
+                        command="index=botsv3 | table _time host sourcetype"
+                        explanation="This turns messy results into a clean grid with only the fields you name."
+                        beginnerTip="If a field name is wrong, the column may appear blank. That is your clue to inspect the event and find the real field name."
+                      />
+
                       <SplCommandCard
                         num="9"
                         title="dedup"
@@ -2527,13 +2464,14 @@
                         explanation="This keeps only the first occurrence of each host in the current result set."
                         beginnerTip="Dedup is for getting a unique-looking list. It is not the same as counting."
                       />
+
                       <SplCommandCard
                         num="10"
-                        title="where"
-                        purpose="Filter results using conditions"
-                        command="index=botsv3 | stats count by host | where count > 1000"
-                        explanation="Where filters results after the count has already been calculated."
-                        beginnerTip="Use search to filter raw events. Use where to filter calculated results."
+                        title="fields"
+                        purpose="Keep or drop fields"
+                        command="index=botsv3 | fields _time host sourcetype source"
+                        explanation="This keeps only the listed fields while still leaving results as events, unlike table which fully formats the output."
+                        beginnerTip="Use fields when you still want event-style results but want less clutter."
                       />
                     </div>
 
@@ -2616,11 +2554,10 @@
                       icon="fas fa-compass"
                     />
                     <p className="mb-6 text-xl text-slate-300 leading-relaxed font-light">
-                      This new chapter keeps the original generic 15-card
-                      structure you liked. These are simple hunting drills that
-                      teach a beginner how to explore data, validate fields, and
-                      think like a SOC Level 1 analyst before moving into the
-                      more BOTSv3-specific challenge set.
+                      These are simple hunting drills that teach a beginner how
+                      to explore data, validate fields, and think like a SOC
+                      Level 1 analyst before moving into the more
+                      BOTSv3-specific challenge set.
                     </p>
 
                     <InfoCard
